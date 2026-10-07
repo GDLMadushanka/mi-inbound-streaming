@@ -1,0 +1,19 @@
+# MI 4.1.0 already ships commons-vfs2 (2.2.0-wso2v13, package org.apache.commons.vfs2), its
+# sandbox providers, smbj and asn-one, so those are NOT listed here - re-adding them would put a
+# second, package-relocated copy of commons-vfs on the classpath. Only commons-csv (not shipped
+# by MI 4.1.0) and the inbound itself have to be dropped into the runtime.
+dependencies:
+  - groupId: "org.apache.commons"
+    artifactId: "commons-csv"
+    version: "1.14.1"
+  - groupId: "org.wso2.integration.inbound.streaming"
+    artifactId: "mi-inbound-streaming"
+    version: "${file.inbound.version}"
+
+repositories:
+  - id: "central"
+    url: "https://repo.maven.apache.org/maven2/"
+  - id: "wso2-nexus"
+    url: "https://maven.wso2.org/nexus/content/groups/wso2-public/"
+  - id: "wso2-maven2-repository"
+    url: "scp://dist.wso2.org/home/httpd/dist.wso2.org/maven2/"

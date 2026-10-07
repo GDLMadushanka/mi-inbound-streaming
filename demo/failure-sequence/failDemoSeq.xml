@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="failDemoSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="ROW" expression="get-property('STREAMING_RECORD_NUMBER')"/>
+        <property name="data" expression="get-property('rowOut')"/>
+    </log>
+    <payloadFactory media-type="json">
+        <format>{"row":$1,"data":$2}</format>
+        <args>
+            <arg expression="get-property('STREAMING_RECORD_NUMBER')"/>
+            <arg expression="get-property('rowOut')"/>
+        </args>
+    </payloadFactory>
+</sequence>

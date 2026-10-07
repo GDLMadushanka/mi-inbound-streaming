@@ -1,0 +1,1346 @@
+{
+  "name": "file",
+  "type": "event-integration",
+  "title": "File (Inbound)",
+  "id": "org.wso2.carbon.inbound.streaming.VFSConsumer",
+  "elements": [
+    {
+      "type": "attributeGroup",
+      "value": {
+        "groupName": "Generic",
+        "isCollapsed": false,
+        "elements": [
+          {
+            "type": "attribute",
+            "value": {
+              "name": "name",
+              "displayName": "Event Integration Name",
+              "inputType": "string",
+              "required": "true"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "class",
+              "displayName": "Class Name",
+              "inputType": "string",
+              "required": "true",
+              "hidden": true,
+              "defaultValue": "org.wso2.carbon.inbound.streaming.VFSConsumer"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "generateSequences",
+              "displayName": "Automatically generate sequences",
+              "inputType": "checkbox",
+              "defaultValue": true
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "sequence",
+              "displayName": "Injecting Sequence Name",
+              "inputType": "keyOrExpression",
+              "keyType": "sequence",
+              "required": "true",
+              "enableCondition": [
+                {
+                  "generateSequences": false
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "onError",
+              "displayName": "Error Sequence Name",
+              "inputType": "keyOrExpression",
+              "keyType": "sequence",
+              "required": "true",
+              "enableCondition": [
+                {
+                  "generateSequences": false
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "suspend",
+              "displayName": "Suspend Inbound",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "hidden": "true",
+              "required": "false"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "attributeGroup",
+      "value": {
+        "groupName": "Basic",
+        "isCollapsed": false,
+        "elements": [
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileURI",
+              "displayName": "File URI",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "true"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "scheduleType",
+              "displayName": "Schedule Type",
+              "inputType": "combo",
+              "defaultValue": "Polling",
+              "required": "true",
+              "helpTip": "The polling type for the connection.",
+              "comboValues": [
+                "Polling",
+                "Cron"
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "interval",
+              "displayName": "Polling Interval",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "true",
+              "helpTip": "The interval for the connection.",
+              "enableCondition": [
+                {
+                  "scheduleType": "Polling"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "cronExpression",
+              "displayName": "Cron Expression",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "true",
+              "helpTip": "The cron for the connection.",
+              "enableCondition": [
+                {
+                  "scheduleType": "Cron"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.ContentType",
+              "displayName": "Content-Type",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileNamePattern",
+              "displayName": "File Name Pattern",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "fileThrottlingType",
+              "displayName": "File Throttling Type",
+              "inputType": "combo",
+              "defaultValue": "Count",
+              "required": "true",
+              "helpTip": "Choose how file processing is controlled.",
+              "comboValues": [
+                "Count",
+                "Interval"
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileProcessCount",
+              "displayName": "File Process Count",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "true",
+              "helpTip": "Maximum number of files to process in a single polling cycle.",
+              "enableCondition": [
+                {
+                  "fileThrottlingType": "Count"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileProcessInterval",
+              "displayName": "File Process Interval (ms)",
+              "inputType": "string",
+              "defaultValue": "0",
+              "required": "true",
+              "helpTip": "Delay (in milliseconds) between processing consecutive files.",
+              "enableCondition": [
+                {
+                  "fileThrottlingType": "Interval"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "sequential",
+              "displayName": "Sequential",
+              "inputType": "checkbox",
+              "defaultValue": true,
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "coordination",
+              "displayName": "Coordination",
+              "inputType": "checkbox",
+              "defaultValue": true,
+              "required": "false"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "attributeGroup",
+      "value": {
+        "groupName": "Streaming",
+        "isCollapsed": false,
+        "elements": [
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.Streaming",
+              "displayName": "Streaming",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingMode",
+              "displayName": "Streaming Mode",
+              "inputType": "combo",
+              "comboValues": [
+                "ENTIRE_FILE",
+                "CHUNK",
+                "RECORD"
+              ],
+              "defaultValue": "ENTIRE_FILE",
+              "required": "false",
+              "helpTip": "How the file is streamed: ENTIRE_FILE (whole file as one message), CHUNK (a batch of records per message), or RECORD (one record per message).",
+              "enableCondition": [
+                {
+                  "transport.vfs.Streaming": true
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingInputFormat",
+              "displayName": "Input Format",
+              "inputType": "combo",
+              "comboValues": [
+                "text",
+                "csv",
+                "json",
+                "jsonl",
+                "xml"
+              ],
+              "defaultValue": "text",
+              "required": "false",
+              "helpTip": "Format of the file being streamed. Determines which parser is used and which format-specific options apply.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingJsonPath",
+              "displayName": "JSON Path",
+              "inputType": "string",
+              "defaultValue": "$[*]",
+              "required": "false",
+              "helpTip": "Selector marking which JSON nodes become records, e.g. $[*] or $.store.books[*]. Supports object navigation with a single wildcard; recursive descent, filters and array indexes are not supported.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "AND",
+                  {
+                    "transport.vfs.StreamingInputFormat": "json"
+                  },
+                  [
+                    "OR",
+                    {
+                      "transport.vfs.StreamingMode": "CHUNK"
+                    },
+                    {
+                      "transport.vfs.StreamingMode": "RECORD"
+                    }
+                  ]
+                ]
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingBufferSize",
+              "displayName": "Streaming Buffer Size (bytes)",
+              "inputType": "string",
+              "defaultValue": "8192",
+              "required": "false",
+              "helpTip": "Read buffer size in bytes used by the streaming reader.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingCharset",
+              "displayName": "Streaming Charset",
+              "inputType": "string",
+              "defaultValue": "UTF-8",
+              "required": "false",
+              "helpTip": "Charset used to decode the streamed file, e.g. UTF-8, UTF-16, ISO-8859-1. Independent of the input format.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingChunkSize",
+              "displayName": "Streaming Chunk Size (records)",
+              "inputType": "string",
+              "defaultValue": "1",
+              "required": "false",
+              "helpTip": "Number of records grouped into each chunk message.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                {
+                  "transport.vfs.StreamingMode": "CHUNK"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.StreamingOutputProperty",
+              "displayName": "Streaming Output Property",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false",
+              "helpTip": "When set, parsed fields are placed in a message property with this name (as a JSON string) and the message body is left empty. When left blank, the raw record/chunk content is set as the message body.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "attributeGroup",
+            "value": {
+              "groupName": "CSV Configuration",
+              "isCollapsed": false,
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "AND",
+                  {
+                    "transport.vfs.StreamingInputFormat": "csv"
+                  },
+                  [
+                    "OR",
+                    {
+                      "transport.vfs.StreamingMode": "CHUNK"
+                    },
+                    {
+                      "transport.vfs.StreamingMode": "RECORD"
+                    }
+                  ]
+                ]
+              ],
+              "elements": [
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingCsvHasHeader",
+                    "displayName": "CSV Has Header",
+                    "inputType": "checkbox",
+                    "defaultValue": true,
+                    "required": "false",
+                    "helpTip": "Whether the first row of the CSV is a header row.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "csv"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingCsvDataTypes",
+                    "displayName": "CSV Data Types",
+                    "inputType": "keyValueTable",
+                    "defaultValue": "",
+                    "columns": [
+                      {
+                        "name": "Column Name Or Index",
+                        "type": "text"
+                      },
+                      {
+                        "name": "Is Column Name",
+                        "type": "combo",
+                        "allowedValues": [
+                          "Yes",
+                          "No"
+                        ]
+                      },
+                      {
+                        "name": "Data Type",
+                        "type": "combo",
+                        "allowedValues": [
+                          "String",
+                          "Boolean",
+                          "Integer",
+                          "Number"
+                        ]
+                      }
+                    ],
+                    "required": "false",
+                    "helpTip": "JSON type for selected CSV columns. Without this every cell is a string. Identify a column by header name (Is Column Name = Yes) or by 1-based position (Is Column Name = No). Applies only when Streaming Output Property is set; untyped columns and values that do not parse stay strings.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "csv"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingCsvDelimiter",
+                    "displayName": "CSV Delimiter",
+                    "inputType": "string",
+                    "defaultValue": ",",
+                    "required": "false",
+                    "helpTip": "Single character used to separate CSV fields.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "csv"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingCsvQuote",
+                    "displayName": "CSV Quote Character",
+                    "inputType": "string",
+                    "defaultValue": "\"",
+                    "required": "false",
+                    "helpTip": "Single character used to quote CSV fields that contain the delimiter or line breaks.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "csv"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingAddHeadersToEachResult",
+                    "displayName": "Add Headers To Each Record",
+                    "inputType": "checkbox",
+                    "defaultValue": false,
+                    "required": "false",
+                    "helpTip": "In RECORD mode with raw body output, prepend the header row to each record's content.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "csv"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "attributeGroup",
+            "value": {
+              "groupName": "Streaming Error Handling",
+              "isCollapsed": false,
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ],
+              "elements": [
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingParseErrorAction",
+                    "displayName": "Parse Error Action",
+                    "inputType": "combo",
+                    "comboValues": [
+                      "MOVE",
+                      "DROP"
+                    ],
+                    "defaultValue": "MOVE",
+                    "required": "false",
+                    "helpTip": "What to do with a record that fails to parse (JSONL only): MOVE appends it to the parse-error folder; DROP discards it. Either way processing continues with the next record.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "jsonl"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingParseErrorFolder",
+                    "displayName": "Parse Error Folder",
+                    "inputType": "string",
+                    "required": "false",
+                    "helpTip": "VFS URI of the folder where parse-error records are moved (one sidecar per source file, named <name>.parse.fail.<ext>). When empty, falls back to the fault folder (Move After Failure); if that is also empty, parse errors are logged only.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingInputFormat": "jsonl"
+                        },
+                        [
+                          "AND",
+                          {
+                            "transport.vfs.StreamingParseErrorAction": "MOVE"
+                          },
+                          [
+                            "OR",
+                            {
+                              "transport.vfs.StreamingMode": "CHUNK"
+                            },
+                            {
+                              "transport.vfs.StreamingMode": "RECORD"
+                            }
+                          ]
+                        ]
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingMediationErrorAction",
+                    "displayName": "Mediation Error Action",
+                    "inputType": "combo",
+                    "comboValues": [
+                      "MOVE",
+                      "DROP"
+                    ],
+                    "defaultValue": "MOVE",
+                    "required": "false",
+                    "helpTip": "What to do with a record/chunk whose mediation (injection to the sequence) fails: MOVE appends it to the mediation-error folder; DROP discards it. Either way processing continues.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingMediationErrorFolder",
+                    "displayName": "Mediation Error Folder",
+                    "inputType": "string",
+                    "required": "false",
+                    "helpTip": "VFS URI of the folder where mediation-error records are moved (one sidecar per source file, named <name>.mediation.fail.<ext>). When empty, falls back to the parse-error folder, then the fault folder; if all are empty, mediation errors are logged only.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "AND",
+                        {
+                          "transport.vfs.StreamingMediationErrorAction": "MOVE"
+                        },
+                        [
+                          "OR",
+                          {
+                            "transport.vfs.StreamingMode": "CHUNK"
+                          },
+                          {
+                            "transport.vfs.StreamingMode": "RECORD"
+                          }
+                        ]
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "attributeGroup",
+            "value": {
+              "groupName": "Streaming Checkpoint",
+              "isCollapsed": false,
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ],
+              "elements": [
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingCheckpointEnabled",
+                    "displayName": "Enable Checkpointing",
+                    "inputType": "checkbox",
+                    "defaultValue": true,
+                    "required": "false",
+                    "helpTip": "Write a resume point to the MI registry so a restart continues mid-file instead of reprocessing from the beginning. Requires a shared registry in a cluster.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingCheckpointInterval",
+                    "displayName": "Checkpoint Interval",
+                    "inputType": "string",
+                    "defaultValue": "1000",
+                    "required": "false",
+                    "helpTip": "Flush the checkpoint every this many confirmed units - records in RECORD mode, chunks in CHUNK mode. Lower means less re-work after a restart but more registry writes.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "type": "attributeGroup",
+            "value": {
+              "groupName": "File Completion Callbacks",
+              "isCollapsed": false,
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ],
+              "elements": [
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingFileCompleteSequence",
+                    "displayName": "On File Complete Sequence",
+                    "inputType": "keyOrExpression",
+                    "defaultValue": "",
+                    "required": "false",
+                    "helpTip": "Sequence invoked once after a file has been streamed to completion, with the file totals. Leave blank for no callback.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ],
+                    "keyType": "sequence"
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingFileFailureSequence",
+                    "displayName": "On File Failure Sequence",
+                    "inputType": "keyOrExpression",
+                    "defaultValue": "",
+                    "required": "false",
+                    "helpTip": "Sequence invoked once after a file is treated as a whole-file failure, with the file totals. Leave blank for no callback.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ],
+                    "keyType": "sequence"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "attributeGroup",
+      "value": {
+        "groupName": "Actions",
+        "isCollapsed": false,
+        "elements": [
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.ActionAfterProcess",
+              "displayName": "Action After Process",
+              "inputType": "combo",
+              "comboValues": [
+                "DELETE",
+                "MOVE"
+              ],
+              "defaultValue": "MOVE",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MoveAfterProcess",
+              "displayName": "Move After Process",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "true",
+              "helpTip": "URI for the target location.",
+              "enableCondition": [
+                {
+                  "transport.vfs.ActionAfterProcess": "MOVE"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MoveTimestampFormat",
+              "displayName": "Move Timestamp Format",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false",
+              "enableCondition": [
+                {
+                  "transport.vfs.ActionAfterProcess": "MOVE"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.ActionAfterFailure",
+              "displayName": "Action After Process Failure",
+              "inputType": "combo",
+              "comboValues": [
+                "DELETE",
+                "MOVE"
+              ],
+              "defaultValue": "MOVE",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MoveAfterFailure",
+              "displayName": "Move After Failure",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "true",
+              "helpTip": "URI for the target location for failed files.",
+              "enableCondition": [
+                {
+                  "transport.vfs.ActionAfterFailure": "MOVE"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MoveAfterFailedMove",
+              "displayName": "Secondary Fallback Destination",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false",
+              "enableCondition": [
+                {
+                  "transport.vfs.ActionAfterFailure": "MOVE"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FailedRecordsFileName",
+              "displayName": "Failed Records File Name",
+              "inputType": "string",
+              "defaultValue": "vfs-move-failed-records.properties",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FailedRecordsFileDestination",
+              "displayName": "Failed Records File Destination",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MoveFailedRecordTimestampFormat",
+              "displayName": "Move Failed Record Timestamp Format",
+              "inputType": "string",
+              "defaultValue": "dd-MM-yyyy HH:mm:ss",
+              "required": "false"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "attributeGroup",
+      "value": {
+        "groupName": "Resilience",
+        "isCollapsed": true,
+        "elements": [
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MaxRetryCount",
+              "displayName": "Max Retry Count",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.ReconnectTimeout",
+              "displayName": "Reconnect Timeout",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FailedRecordNextRetryDuration",
+              "displayName": "Failed Record Next Retry Duration",
+              "inputType": "string",
+              "defaultValue": "3000",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.Locking",
+              "displayName": "Locking",
+              "inputType": "combo",
+              "comboValues": [
+                "enable",
+                "disable"
+              ],
+              "defaultValue": "enable",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.AutoLockRelease",
+              "displayName": "Auto Lock Release",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "required": "false",
+              "enableCondition": [
+                {
+                  "transport.vfs.Locking": "enable"
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.AutoLockReleaseInterval",
+              "displayName": "Auto Lock Release Interval",
+              "inputType": "string",
+              "required": "true",
+              "defaultValue": "",
+              "enableCondition": [
+                {
+                  "transport.vfs.AutoLockRelease": true
+                }
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.LockReleaseSameNode",
+              "displayName": "Auto Lock Release Same Node",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "required": "",
+              "enableCondition": [
+                {
+                  "transport.vfs.AutoLockRelease": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "attributeGroup",
+      "value": {
+        "groupName": "Other",
+        "isCollapsed": true,
+        "elements": [
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.SFTPIdentities",
+              "displayName": "SFTP Identities",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.SFTPIdentityPassPhrase",
+              "displayName": "SFTP Identity Pass Phrase",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.SFTPUserDirIsRoot",
+              "displayName": "SFTP User Directory Is Root",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileSortAttribute",
+              "displayName": "File Sort Attribute",
+              "inputType": "combo",
+              "comboValues": [
+                "NONE",
+                "Name",
+                "Size",
+                "Lastmodifiedtimestamp"
+              ],
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileSortAscending",
+              "displayName": "File Sort Ascending",
+              "inputType": "checkbox",
+              "defaultValue": true,
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.CheckSizeIgnoreEmpty",
+              "displayName": "Ignore Empty Files During Size Check",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "required": "false",
+              "helpTip": "When true, empty files are ignored during file size checks."
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.CheckSizeInterval",
+              "displayName": "Size Check Interval (ms)",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false",
+              "helpTip": "Duration in milliseconds between file size checks."
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MinimumAge",
+              "displayName": "Minimum File Age (s)",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false",
+              "helpTip": "Minimum age in seconds since the last modification before processing a file."
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.MaximumAge",
+              "displayName": "Maximum File Age (s)",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false",
+              "helpTip": "Maximum age in seconds since the last modification; older files will be skipped."
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.FileSizeLimit",
+              "displayName": "File Size Limit (bytes)",
+              "inputType": "string",
+              "defaultValue": "-1",
+              "required": "false",
+              "helpTip": "Process files whose size is \u2264 this value (in bytes). Use -1 for unlimited."
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.SubFolderTimestampFormat",
+              "displayName": "Sub Folder Timestamp Format",
+              "inputType": "string",
+              "defaultValue": "",
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.Build",
+              "displayName": "Build",
+              "inputType": "checkbox",
+              "defaultValue": false,
+              "required": "false"
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
+              "name": "transport.vfs.UpdateLastModified",
+              "displayName": "Update Last Modified",
+              "inputType": "checkbox",
+              "defaultValue": true,
+              "required": "false"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Demonstrates transport.vfs.StreamingFileFailureSequence.
+     Drop broken-orders.csv into failtest/in: rows 1-3 mediate, row 4 is malformed CSV,
+     the whole file aborts and failDemoFailedSeq fires.
+     Drop good-orders.csv instead and failDemoCompleteSeq fires. -->
+<inboundEndpoint xmlns="http://ws.apache.org/ns/synapse"
+                 name="failDemoInbound"
+                 class="org.wso2.carbon.inbound.streaming.VFSConsumer"
+                 sequence="failDemoSeq"
+                 onError="failDemoFaultSeq"
+                 suspend="false">
+    <parameters xmlns="http://ws.apache.org/ns/synapse">
+        <parameter name="scheduleType">Polling</parameter>
+        <parameter name="interval">5000</parameter>
+        <parameter name="sequential">true</parameter>
+        <parameter name="coordination">true</parameter>
+
+        <parameter name="transport.vfs.FileURI">/Users/lahirumadushanka/Documents/BlobTest/bigdemo/failtest/in</parameter>
+        <parameter name="transport.vfs.FileNamePattern">.*\.csv</parameter>
+        <parameter name="transport.vfs.FileProcessCount">1</parameter>
+        <parameter name="transport.vfs.Locking">enable</parameter>
+
+        <!-- A failed file goes here, so you can tell success from failure by where it lands. -->
+        <parameter name="transport.vfs.ActionAfterProcess">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterProcess">/Users/lahirumadushanka/Documents/BlobTest/bigdemo/failtest/out</parameter>
+        <parameter name="transport.vfs.ActionAfterFailure">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterFailure">/Users/lahirumadushanka/Documents/BlobTest/bigdemo/failtest/fault</parameter>
+
+        <parameter name="transport.vfs.Streaming">true</parameter>
+        <parameter name="transport.vfs.StreamingMode">RECORD</parameter>
+        <parameter name="transport.vfs.StreamingInputFormat">csv</parameter>
+        <parameter name="transport.vfs.StreamingCsvHasHeader">true</parameter>
+        <parameter name="transport.vfs.StreamingAddHeadersToEachResult">true</parameter>
+        <parameter name="transport.vfs.StreamingOutputProperty">rowOut</parameter>
+
+        <!-- The two callbacks under test. -->
+        <parameter name="transport.vfs.StreamingFileCompleteSequence">failDemoCompleteSeq</parameter>
+        <parameter name="transport.vfs.StreamingFileFailureSequence">failDemoFailedSeq</parameter>
+
+        <parameter name="transport.vfs.ReplyFileURI">/Users/lahirumadushanka/Documents/BlobTest/bigdemo/failtest/replies</parameter>
+        <parameter name="transport.vfs.ReplyFileName">rows.jsonl</parameter>
+    </parameters>
+</inboundEndpoint>

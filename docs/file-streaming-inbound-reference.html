@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>File Streaming Inbound Reference — WSO2 MI 4.1.0</title>
+<style>
+@page { size: A4; margin: 15mm 13mm; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 9.4pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+  background: #fff;
+  margin: 0;
+  max-width: 182mm;
+}
+
+/* ---------- headings ---------- */
+h1 {
+  font-size: 21pt;
+  line-height: 1.12;
+  margin: 0 0 4pt;
+  letter-spacing: -.01em;
+  font-weight: 700;
+}
+h2 {
+  font-size: 13pt;
+  margin: 20pt 0 7pt;
+  padding-bottom: 3pt;
+  border-bottom: 1.2pt solid #0b6a74;
+  color: #0b6a74;
+  font-weight: 700;
+  break-after: avoid;
+  break-inside: avoid;
+}
+h3 {
+  font-size: 10.4pt;
+  margin: 13pt 0 5pt;
+  font-weight: 700;
+  break-after: avoid;
+}
+h4 {
+  font-size: 9pt;
+  margin: 10pt 0 4pt;
+  font-weight: 700;
+  color: #444;
+  break-after: avoid;
+}
+p { margin: 0 0 6pt; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 7pt; padding-left: 15pt; }
+li { margin-bottom: 2.5pt; }
+
+/* ---------- masthead ---------- */
+.masthead { border-bottom: 2pt solid #1a1a1a; padding-bottom: 9pt; margin-bottom: 12pt; }
+.kicker {
+  font-size: 7.8pt; letter-spacing: .13em; text-transform: uppercase;
+  color: #0b6a74; font-weight: 700; margin: 0 0 5pt;
+}
+.standfirst { font-size: 10.2pt; color: #444; margin: 0 0 8pt; max-width: 155mm; }
+.facts { font-size: 8pt; color: #555; margin: 0; }
+.facts span { display: inline-block; margin-right: 14pt; white-space: nowrap; }
+.facts b { color: #1a1a1a; }
+
+/* ---------- contents ---------- */
+.toc { border: .7pt solid #ccc; background: #f7f8f9; padding: 9pt 12pt; margin-bottom: 14pt; break-inside: avoid; }
+.toc h4 { margin: 0 0 5pt; }
+.toc ol { columns: 2; column-gap: 18pt; margin: 0; padding-left: 14pt; font-size: 8.6pt; }
+.toc li { margin-bottom: 1.5pt; }
+
+/* ---------- tables ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.2pt;
+  margin: 0 0 9pt;
+  break-inside: auto;
+}
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+th {
+  text-align: left;
+  background: #eceff1;
+  border: .7pt solid #c4ccd1;
+  padding: 4pt 6pt;
+  font-size: 7.4pt;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #333;
+}
+td { border: .7pt solid #d8dde0; padding: 4pt 6pt; vertical-align: top; }
+td.p { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 7.7pt; font-weight: 600; overflow-wrap: break-word; }
+td.d { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 7.7pt; color: #555; white-space: nowrap; }
+td.d em { font-style: italic; font-family: inherit; color: #777; }
+table ul { margin: 3pt 0 0; padding-left: 12pt; }
+table li { margin-bottom: 1pt; }
+.req { color: #9c2f2c; font-weight: 700; font-size: 6.8pt; letter-spacing: .05em; }
+
+/* ---------- code ---------- */
+pre {
+  background: #f5f6f7;
+  border: .7pt solid #d2d8db;
+  border-left: 2.5pt solid #0b6a74;
+  padding: 6pt 8pt;
+  margin: 0 0 9pt;
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 7.5pt;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  break-inside: avoid;
+}
+pre.long { break-inside: auto; }
+.filename {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 7.4pt;
+  font-weight: 700;
+  color: #0b6a74;
+  margin: 0 0 2pt;
+  break-after: avoid;
+}
+code {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: .88em;
+  background: #eef1f2;
+  padding: .5pt 2.5pt;
+  word-break: break-word;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+.c { color: #6a7a82; font-style: italic; }
+
+/* ---------- callouts ---------- */
+.note {
+  border: .7pt solid #9fc4c8;
+  background: #eef6f7;
+  padding: 6pt 9pt;
+  margin: 0 0 9pt;
+  font-size: 8.6pt;
+  break-inside: avoid;
+}
+.note.warn { border-color: #d9bd84; background: #fdf6e8; }
+.note.stop { border-color: #d6a6a4; background: #fbeeed; }
+.note b.tag { display: block; font-size: 7.4pt; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2pt; color: #0b6a74; }
+.note.warn b.tag { color: #8a5a07; }
+.note.stop b.tag { color: #9c2f2c; }
+.note p:last-child { margin-bottom: 0; }
+
+/* ---------- flow ---------- */
+.prefix { font-size: 7.6pt; color: #666; margin: 0 0 3pt; }
+.prefix code { background: #eef1f2; }
+.flow { font-size: 8.4pt; margin: 0 0 9pt; padding-left: 15pt; }
+.flow li { margin-bottom: 2pt; }
+.flow .br { color: #8a5a07; font-style: italic; }
+
+/* ---------- examples ---------- */
+.ex { border: .7pt solid #c4ccd1; padding: 9pt 11pt; margin: 0 0 11pt; background: #fcfcfd; }
+.ex > h3:first-child { margin-top: 0; }
+.exflow {
+  font-family: "SF Mono", Menlo, Consolas, monospace;
+  font-size: 7.6pt; color: #0b6a74; background: #eef4f5;
+  padding: 4pt 7pt; margin: 0 0 7pt; word-break: break-word;
+}
+.newpage { break-before: page; }
+footer { margin-top: 16pt; padding-top: 6pt; border-top: .7pt solid #ccc; font-size: 7.6pt; color: #666; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <p class="kicker">WSO2 Micro Integrator 4.1.0 · Parameter Reference</p>
+  <h1>File Streaming Inbound Endpoint</h1>
+  <p class="standfirst">Every parameter of <code>org.wso2.carbon.inbound.streaming.VFSConsumer</code>, its default, and four complete configurations. The inbound reads a file as a stream, so a multi-gigabyte CSV passes through a 1&nbsp;GB heap without ever being held whole.</p>
+  <p class="facts">
+    <span><b>Modes</b> ENTIRE_FILE · CHUNK · RECORD</span>
+    <span><b>Formats</b> csv · json · jsonl · xml · text</span>
+    <span><b>Verified</b> 2.2 GB through a 1 GB heap, peak 404 MB</span>
+  </p>
+</div>
+
+<div class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li>Declaring parameters</li>
+    <li>What one file does</li>
+    <li>Inbound plumbing</li>
+    <li>Source and polling</li>
+    <li>Streaming core</li>
+    <li>CSV parsing</li>
+    <li>JSON, JSONL, XML, text</li>
+    <li>Where output goes</li>
+    <li>Reply file</li>
+    <li>Error handling</li>
+    <li>Checkpointing</li>
+    <li>Completion sequences</li>
+    <li>Locking</li>
+    <li>After processing</li>
+    <li>Remote connections</li>
+    <li>Context properties</li>
+    <li>Four configurations</li>
+    <li>Gotchas</li>
+  </ol>
+</div>
+
+<h2>1 · Declaring parameters</h2>
+<p>Every parameter goes inside the <code>&lt;parameters&gt;</code> element of an <code>inboundEndpoint</code>, deployed to <code>&lt;MI_HOME&gt;/repository/deployment/server/synapse-configs/default/inbound-endpoints/</code>.</p>
+<p class="filename">skeleton.xml</p>
+<pre>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;inboundEndpoint xmlns="http://ws.apache.org/ns/synapse"
+                 name="myStreamInbound"
+                 class="org.wso2.carbon.inbound.streaming.VFSConsumer"
+                 sequence="mySeq" onError="myFaultSeq" suspend="false"&gt;
+    &lt;parameters xmlns="http://ws.apache.org/ns/synapse"&gt;
+        &lt;parameter name="scheduleType"&gt;Polling&lt;/parameter&gt;
+        &lt;parameter name="interval"&gt;5000&lt;/parameter&gt;
+        <span class="c">&lt;!-- ... the rest ... --&gt;</span>
+    &lt;/parameters&gt;
+&lt;/inboundEndpoint&gt;</pre>
+<div class="note stop">
+  <b class="tag">MI 4.1.0 only</b>
+  <p>Use the <code>class</code> attribute with <code>scheduleType</code>, never <code>protocol="polling"</code> — MI 4.1.0 rejects it with <code>No enum constant ... Protocols.polling</code>. There is also no <code>cronExpression</code> support on this runtime; use <code>interval</code>.</p>
+</div>
+
+<h2>2 · What one file does</h2>
+<ol class="flow">
+  <li>Poll the folder; skip anything not matching <code>FileNamePattern</code>.</li>
+  <li>Take the <code>.lock</code> beside the file.</li>
+  <li>Look for a checkpoint. <span class="br">Resumable →</span> start at record N. <span class="br">Otherwise →</span> start at record 1.</li>
+  <li>Read one chunk or record.</li>
+  <li>Inject it into the sequence.</li>
+  <li>Append whatever the sequence left to the reply file.</li>
+  <li>Every <code>CheckpointInterval</code> units, write the checkpoint.</li>
+  <li>Repeat from step 4 until the file is exhausted.</li>
+  <li>Clear the checkpoint, run <code>FileCompleteSequence</code>, move the file to <code>MoveAfterProcess</code>.</li>
+</ol>
+<p>A graceful shutdown interrupts the loop at steps 4–8: the inbound finishes the record in flight, writes a checkpoint, releases the lock and leaves the file where it is. Neither completion sequence fires — the file is paused, not finished.</p>
+
+<h2>3 · Inbound plumbing</h2>
+<p>Synapse-level parameters, not specific to this inbound.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">scheduleType <span class="req">REQ</span></td><td class="d">—</td><td>Must be <code>Polling</code>. Pairs with the <code>class</code> attribute.</td></tr>
+    <tr><td class="p">interval <span class="req">REQ</span></td><td class="d">—</td><td>Milliseconds between polls of the source folder.</td></tr>
+    <tr><td class="p">sequential</td><td class="d">true</td><td>Whether polls run one at a time. Streaming always delivers records sequentially within a file whatever this is set to; it only affects concurrency across polls.</td></tr>
+    <tr><td class="p">coordination</td><td class="d">true</td><td>In a cluster, only the coordinator polls. Leave it on, or several nodes will fight for the same file.</td></tr>
+  </tbody>
+</table>
+<p>The <code>sequence</code> attribute names the sequence each chunk or record is injected into; <code>onError</code> names the fault sequence.</p>
+
+<h2>4 · Source and polling</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">FileURI <span class="req">REQ</span></td><td class="d">—</td><td>The folder (or single file) to poll. A local path, or a VFS URI — <code>sftp://</code>, <code>ftp://</code>, <code>ftps://</code>, <code>smb2://</code>.</td></tr>
+    <tr><td class="p">FileNamePattern</td><td class="d"><em>all</em></td><td>Java regex a file name must match, e.g. <code>.*\.csv</code>.</td></tr>
+    <tr><td class="p">ContentType</td><td class="d"><em>none</em></td><td>Content type for the whole-file path. Ignored in CHUNK and RECORD modes, where the format fixes it.</td></tr>
+    <tr><td class="p">fileType</td><td class="d"><em>none</em></td><td>VFS file type hint for the connection.</td></tr>
+    <tr><td class="p">FileProcessCount</td><td class="d"><em>all</em></td><td>Maximum files consumed per poll. Set to <code>1</code> for large files so peak memory stays predictable.</td></tr>
+    <tr><td class="p">FileProcessInterval</td><td class="d">0</td><td>Milliseconds to pause between files within one poll.</td></tr>
+    <tr><td class="p">FileSortAttribute</td><td class="d"><em>none</em></td><td>Sort key: <code>Name</code>, <code>Size</code> or <code>Lastmodifiedtimestamp</code>.</td></tr>
+    <tr><td class="p">FileSortAscending</td><td class="d">true</td><td>Sort direction for the above.</td></tr>
+    <tr><td class="p">MinimumAge</td><td class="d"><em>none</em></td><td>Milliseconds a file must have existed before it is touched. The simplest guard against reading a file still being written.</td></tr>
+    <tr><td class="p">MaximumAge</td><td class="d"><em>none</em></td><td>Files older than this are skipped and left in place.</td></tr>
+    <tr><td class="p">FileSizeLimit</td><td class="d">-1</td><td>Bytes; <code>-1</code> is no limit. Larger files are skipped.</td></tr>
+    <tr><td class="p">CheckSizeInterval</td><td class="d"><em>none</em></td><td>Milliseconds between two size readings. The file is only consumed if the size did not change — the robust guard against a partial upload.</td></tr>
+    <tr><td class="p">CheckSizeIgnoreEmpty</td><td class="d">false</td><td>Skip zero-byte files silently instead of treating them as failures.</td></tr>
+    <tr><td class="p">waitTimeBeforeRead</td><td class="d">0</td><td>Milliseconds to wait after the file is seen before opening it.</td></tr>
+    <tr><td class="p">ClusterAware</td><td class="d">false</td><td>Enables cluster-aware polling behaviour.</td></tr>
+    <tr><td class="p">IsMounted</td><td class="d">false</td><td>Declares the source as a shared mount, which changes how locks are judged.</td></tr>
+    <tr><td class="p">Build</td><td class="d">false</td><td>Build the message on the whole-file path before injection.</td></tr>
+    <tr><td class="p">ResolveHostsDynamically</td><td class="d">false</td><td>Re-resolve the host name on each connection instead of caching it.</td></tr>
+    <tr><td class="p">ReconnectTimeout</td><td class="d">30000</td><td>Milliseconds before a failed remote connection is retried.</td></tr>
+    <tr><td class="p">MaxRetryCount</td><td class="d">3</td><td>Connection attempts before the poll gives up.</td></tr>
+    <tr><td class="p">CreateFolder</td><td class="d">false</td><td>Create the destination folders if they do not exist.</td></tr>
+    <tr><td class="p">UpdateLastModified</td><td class="d">false</td><td>Touch the file's timestamp when it is moved.</td></tr>
+    <tr><td class="p">DistributedLock</td><td class="d">false</td><td>Use a distributed lock instead of the file-based one.</td></tr>
+    <tr><td class="p">DistributedTimeout</td><td class="d"><em>none</em></td><td>Timeout, in seconds, for that distributed lock.</td></tr>
+  </tbody>
+</table>
+
+<h2>5 · Streaming core</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">Streaming <span class="req">REQ</span></td><td class="d">false</td><td>Must be <code>true</code> for CHUNK or RECORD mode. Left at the default, the inbound takes the whole-file path regardless of <code>StreamingMode</code>.</td></tr>
+    <tr><td class="p">StreamingMode</td><td class="d">ENTIRE_FILE</td><td>
+      <ul>
+        <li><code>ENTIRE_FILE</code> — one message for the file. No streaming, no checkpointing.</li>
+        <li><code>CHUNK</code> — a JSON <b>array</b> of <code>StreamingChunkSize</code> records per message.</li>
+        <li><code>RECORD</code> — one JSON <b>object</b> per message.</li>
+      </ul></td></tr>
+    <tr><td class="p">StreamingInputFormat</td><td class="d">text</td><td>How the bytes are parsed: <code>text</code>, <code>csv</code>, <code>json</code>, <code>jsonl</code> or <code>xml</code>.</td></tr>
+    <tr><td class="p">StreamingChunkSize</td><td class="d">1</td><td>Records per message in CHUNK mode. 1000–5000 is the usual range; larger means fewer mediations but a bigger live payload.</td></tr>
+    <tr><td class="p">StreamingBufferSize</td><td class="d">8192</td><td>Read-buffer bytes. 65536 measurably helps on multi-gigabyte files.</td></tr>
+    <tr><td class="p">StreamingCharset</td><td class="d">UTF-8</td><td>Character set used to decode the file, and appended to the content type.</td></tr>
+  </tbody>
+</table>
+<div class="note warn">
+  <b class="tag">Easy to miss</b>
+  <p><code>transport.vfs.Streaming</code> defaults to <code>false</code>. Setting <code>StreamingMode</code> alone does nothing — both are needed.</p>
+</div>
+
+<h2>6 · CSV parsing</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">StreamingCsvHasHeader</td><td class="d">true</td><td>Treat the first line as column names. The header is consumed, not delivered as a record.</td></tr>
+    <tr><td class="p">StreamingCsvDelimiter</td><td class="d">,</td><td>Field separator. Only the first character is used.</td></tr>
+    <tr><td class="p">StreamingCsvQuote</td><td class="d">"</td><td>Quote character.</td></tr>
+    <tr><td class="p">StreamingAddHeadersToEachResult</td><td class="d">false</td><td><code>false</code> emits a row as an array <code>["1","Alice"]</code>; <code>true</code> emits it as an object <code>{"id":"1","name":"Alice"}</code>. Almost always set this to <code>true</code>.</td></tr>
+    <tr><td class="p">StreamingCsvDataTypes</td><td class="d"><em>strings</em></td><td>JSON array declaring the type of named or positional columns. Alias: <code>transport.vfs.csvDataTypes</code>.</td></tr>
+  </tbody>
+</table>
+
+<h3>Column data types</h3>
+<p>CSV carries no types, so without this every field is emitted as a string and a sequence cannot do arithmetic on it. The mapping is declared once on the inbound:</p>
+<pre>&lt;parameter name="transport.vfs.StreamingCsvDataTypes"&gt;[
+  {"Column Name Or Index":"order_id",   "Is Column Name":"Yes", "Data Type":"Integer"},
+  {"Column Name Or Index":"unit_price", "Is Column Name":"Yes", "Data Type":"Number"},
+  {"Column Name Or Index":"2",          "Is Column Name":"No",  "Data Type":"Boolean"}
+]&lt;/parameter&gt;</pre>
+<table>
+  <thead><tr><th style="width:27%">Key</th><th style="width:25%">Values</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td class="p">Column Name Or Index</td><td class="d">string</td><td>A header name, or a zero-based column index as a string.</td></tr>
+    <tr><td class="p">Is Column Name</td><td class="d">Yes / No</td><td><code>Yes</code> reads the first key as a header name, <code>No</code> as an index.</td></tr>
+    <tr><td class="p">Data Type</td><td class="d">String · Integer<br>Number · Boolean</td><td>The JSON type the value is emitted as.</td></tr>
+  </tbody>
+</table>
+<p>A value that will not convert is <b>left as a string</b> and the column is warned about <b>once per file</b>, never once per row — a bad column in a million-row file produces one log line, not a million. Nothing is dropped and nothing fails.</p>
+<p>With the mapping above, the row <code>4,Dave,N/A,7</code> yields <code>{"order_id":4,"name":"Dave","unit_price":"N/A","qty":"7"}</code>: <code>order_id</code> typed, <code>unit_price</code> left alone because <code>N/A</code> is not a number, <code>qty</code> untouched because it was not declared.</p>
+
+<h2>7 · JSON, JSONL, XML, text</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">StreamingJsonPath</td><td class="d">$[*]</td><td>Selects the repeating element in a <code>json</code> file. Applies only to <code>StreamingInputFormat=json</code>.</td></tr>
+  </tbody>
+</table>
+<p>The other formats need no parameters of their own:</p>
+<ul>
+  <li><code>jsonl</code> — one JSON value per line. Each line is a record; no path needed.</li>
+  <li><code>xml</code> — repeating child elements become records.</li>
+  <li><code>text</code> — one line is one record. The default format.</li>
+</ul>
+<p>For a document shaped <code>{"meta":{...},"orders":[...]}</code>, the selector <code>$.orders[*]</code> makes each element of <code>orders</code> one record and ignores <code>meta</code>. The default <code>$[*]</code> suits a file that is a bare top-level array.</p>
+
+<h2>8 · Where output goes</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">StreamingOutputProperty</td><td class="d"><em>unset</em></td><td>Name of a Synapse property to put the parsed JSON into. Unset, the parsed content becomes the <b>message body</b> instead.</td></tr>
+  </tbody>
+</table>
+<p>Read it in a sequence with <code>get-property('&lt;name&gt;')</code>. The value is a JSON <b>object</b> in RECORD mode and a JSON <b>array</b> in CHUNK mode, as a string.</p>
+<div class="note">
+  <b class="tag">Why a property, not a variable</b>
+  <p>MI 4.1.0's Synapse has no message variables. The upstream parameter name <code>transport.vfs.StreamingOutputVariable</code> is still accepted as an alias so existing configurations keep working.</p>
+</div>
+
+<h2>9 · Reply file</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:27%">Parameter</th><th style="width:20%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">ReplyFileURI</td><td class="d"><em>unset</em></td><td>Destination folder for the mediated output. Unset, nothing is written.</td></tr>
+    <tr><td class="p">ReplyFileName</td><td class="d">response.jsonl<br>response.xml</td><td>Output file name. The default depends on the payload: JSON lands in <code>response.jsonl</code>, anything else in <code>response.xml</code>.</td></tr>
+  </tbody>
+</table>
+<p>The payload decides the format, not the input: <code>JsonUtil.hasAJsonPayload()</code> picks the JSON path, otherwise the message is serialised with the registered message formatter for its content type. <b>Append is forced, not a choice</b> — a streaming run writes one file per source file and adds to it on every loop.</p>
+<div class="note warn">
+  <b class="tag">Keep the payload on one line</b>
+  <p>A <code>&lt;payloadFactory&gt;</code> whose <code>&lt;format&gt;</code> spans several lines writes multi-line entries and breaks JSON Lines. Compact the format onto one line.</p>
+</div>
+<p>An empty body is skipped rather than written as a blank line, and a destination that cannot be opened fails softly: the source file has already been delivered to the sequence, so it is not failed over a reply-file problem.</p>
+
+<h2>10 · Error handling</h2>
+<p>Streaming separates a bad <b>record</b> from a bad <b>file</b>. A bad record never fails the file.</p>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:30%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">StreamingParseErrorAction</td><td class="d">MOVE</td><td><code>MOVE</code> collects records that would not parse; <code>DROP</code> discards them.</td></tr>
+    <tr><td class="p">StreamingParseErrorFolder</td><td class="d"><em>unset</em></td><td>Where the collected parse failures are written.</td></tr>
+    <tr><td class="p">StreamingMediationErrorAction</td><td class="d">MOVE</td><td>Same, for records the sequence threw on.</td></tr>
+    <tr><td class="p">StreamingMediationErrorFolder</td><td class="d"><em>unset</em></td><td>Where the collected mediation failures are written.</td></tr>
+  </tbody>
+</table>
+<p>Failed records are collected as JSON Lines: <code>input.jsonl</code> produces <code>input.parse-failed.jsonl</code> and <code>input.mediation-failed.jsonl</code>. Every file ends with a summary line giving the totals:</p>
+<pre>INFO {StreamInjectHandler} - Streaming completed for orders-1gb.csv:
+  processed=8663312, parseFailed=0, mediationFailed=0 (resumed from record 7506000)</pre>
+<p>The whole-file failure parameters (<code>ActionAfterFailure</code>, <code>MoveAfterFailure</code>) still apply to a file that cannot be opened or read at all.</p>
+
+<h2>11 · Checkpointing</h2>
+<p>A long file that is interrupted resumes near where it stopped instead of re-reading from the start.</p>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:30%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">StreamingCheckpointEnabled</td><td class="d">true</td><td>Whether a resume point is written at all.</td></tr>
+    <tr><td class="p">StreamingCheckpointInterval</td><td class="d">1000</td><td>Units between writes — <b>chunks</b> in CHUNK mode, <b>records</b> in RECORD mode. With <code>ChunkSize=2000</code>, an interval of 50 is a resume point every 100,000 rows.</td></tr>
+  </tbody>
+</table>
+<p>Only CHUNK and RECORD checkpoint. <code>ENTIRE_FILE</code> is a single message, so there is no position to record.</p>
+
+<h3>Where it lives</h3>
+<p>The MI registry — a file-based governance registry, <b>no database</b>:</p>
+<pre>gov:/fileStreamingCheckpoints/&lt;inboundName&gt;/&lt;crc32 of the file URI&gt;.json</pre>
+<p>One in-flight checkpoint per source file, plus a <code>.bak</code> holding the previous write and a <code>.meta</code> sidecar the registry keeps. The <code>.bak</code> exists so a crash during the write itself still leaves a usable resume point.</p>
+<p>The source URI is <b>never stored</b>. The resource is named by a CRC32 of it and the body carries only a SHA-256, because an <code>sftp://</code> or <code>smb2://</code> URI carries credentials and in a cluster the registry is a shared mount.</p>
+
+<h3>What is stored</h3>
+<p class="filename">b9aca662.json</p>
+<pre>{"schemaVersion":1,"inboundName":"bigOrdersInbound",
+ "fileUriHash":"9fc088a9528588977f0a0ddbb34d0ff4e38ca6b476b427b85d3eab5b6f103f65",
+ "fileFingerprint":{"size":1073749726,"lastModified":1791264772944,"hashedBytes":65536,
+                    "algorithm":"CRC32","hash":"5aa6208e"},
+ "streamingMode":"CHUNK","inputFormat":"csv","configHash":"da5db5",
+ "recordsConsumed":2812000,"chunksConsumed":1406,"processedRecords":2812000,
+ "parseFailedRecords":0,"mediationFailedRecords":0,"updatedAt":1791264811852}</pre>
+<p><code>chunksConsumed</code> is what keeps chunk numbers counting up after a restart instead of going back to 1. The counters keep the final totals absolute across a resume.</p>
+
+<h3>File identity is content, not timestamp</h3>
+<p>A checkpoint is only used when the file still matches the fingerprint recorded with it: <b>byte count + CRC32 of the leading 64&nbsp;KB + the hash budget and algorithm</b>. The modification time is recorded and printed in diagnostics but is <b>not compared</b>.</p>
+<div class="note stop">
+  <b class="tag">Why mtime is excluded</b>
+  <p>Comparing it broke resume in a cluster. Two nodes reported the same local file's mtime as <code>1791263539594</code> and <code>1791263539000</code> — one instant, the second truncated to a whole second, because the precision depends on the file system and on how the <code>FileObject</code> was resolved. The second node judged the file changed and re-read all of it from record 1. The same comparison also rejected a file moved away and copied back with identical bytes.</p>
+</div>
+<p>The <b>config hash</b> is the other interlock, covering format, mode, chunk size, charset, CSV delimiter/quote/header, JSON path, output property and column data types. Change any of them and the old position is meaningless, so the file starts fresh rather than skipping the wrong records.</p>
+
+<h3>Why a resume did not happen</h3>
+<p>A refused resume costs a full re-read, so the reason is always logged.</p>
+<table>
+  <thead><tr><th style="width:40%">Log line</th><th style="width:10%">Level</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td class="p">No streaming checkpoint at &lt;path&gt;…</td><td class="d">INFO</td><td>Nothing to resume from — the ordinary case for a new file.</td></tr>
+    <tr><td class="p">Ignoring the streaming checkpoint… because &lt;reason&gt;</td><td class="d">WARN</td><td>One was found and refused. The reason names the differing fields, e.g. <code>the file changed since the checkpoint was written (size 42-&gt;1073749726 …)</code>.</td></tr>
+    <tr><td class="p">The primary streaming checkpoint… was unreadable</td><td class="d">WARN</td><td>The main resource was corrupt; the <code>.bak</code> was used.</td></tr>
+  </tbody>
+</table>
+<p>If checkpointing cannot start at all — no registry, or the file cannot be fingerprinted — the file streams without resume support and a warning is logged. It is never a failure.</p>
+
+<h3>Sharing the registry across a cluster</h3>
+<p>For one node to resume what another started, both must read the same governance registry. Point the second node's <code>GovRegRoot</code> at the first node's registry in <code>&lt;MI_HOME&gt;/repository/deployment/server/synapse-configs/default/registry.xml</code>:</p>
+<p class="filename">node2 · registry.xml</p>
+<pre>&lt;registry xmlns="http://ws.apache.org/ns/synapse"
+          provider="org.wso2.micro.integrator.registry.MicroIntegratorRegistry"&gt;
+    &lt;parameter name="cachableDuration"&gt;15000&lt;/parameter&gt;
+    &lt;parameter name="GovRegRoot"&gt;file:///shared/node1/registry/governance&lt;/parameter&gt;
+&lt;/registry&gt;</pre>
+<div class="note warn">
+  <b class="tag">Do not symlink it</b>
+  <p>Symlinking <code>registry/governance</code> breaks reads: <code>MicroIntegratorRegistry</code> resolves the canonical path and checks it still sits under the configured root, and a symlink fails that test. Writes keep working, which hides the problem. Use <code>GovRegRoot</code>.</p>
+</div>
+
+<h2>12 · Completion sequences</h2>
+<p>Two optional sequences fire <b>once per file</b>, after the last record, carrying the file's totals.</p>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:33%">Parameter</th><th style="width:11%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">StreamingFileCompleteSequence</td><td class="d"><em>unset</em></td><td>Invoked after a file is fully consumed.</td></tr>
+    <tr><td class="p">StreamingFileFailureSequence</td><td class="d"><em>unset</em></td><td>Invoked when a file fails as a whole.</td></tr>
+  </tbody>
+</table>
+<p>Both receive a JSON summary as the body and the same values as properties:</p>
+<pre>{"file":"orders-1gb.csv","uri":"file:///data/in/orders-1gb.csv","status":"COMPLETED",
+ "processed":8663312,"parseFailed":0,"mediationFailed":0}</pre>
+<table>
+  <thead><tr><th style="width:33%">Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td class="p">STREAMING_FILE_NAME</td><td>Base name of the source file.</td></tr>
+    <tr><td class="p">STREAMING_FILE_URI</td><td>Full URI, with any password masked.</td></tr>
+    <tr><td class="p">STREAMING_STATUS</td><td><code>COMPLETED</code> or <code>FAILED</code>.</td></tr>
+    <tr><td class="p">STREAMING_PROCESSED</td><td>Records delivered to the sequence.</td></tr>
+    <tr><td class="p">STREAMING_PARSE_FAILED</td><td>Records that would not parse.</td></tr>
+    <tr><td class="p">STREAMING_MEDIATION_FAILED</td><td>Records the sequence threw on.</td></tr>
+  </tbody>
+</table>
+<p><b>Neither fires on a shutdown interruption.</b> The file is paused, not finished, and will be resumed on the next poll.</p>
+
+<h2>13 · Locking</h2>
+<p>A <code>.lock</code> file beside the source stops two nodes consuming it at once.</p>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:30%">Parameter</th><th style="width:11%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">Locking</td><td class="d">enable</td><td><code>enable</code> or <code>disable</code>. Keep it on for any shared or clustered source.</td></tr>
+    <tr><td class="p">AutoLockRelease</td><td class="d">false</td><td>Reclaim a <code>.lock</code> left behind by a hard kill. Without it, a killed server's lock blocks the file forever.</td></tr>
+    <tr><td class="p">AutoLockReleaseInterval</td><td class="d"><em>none</em></td><td>Milliseconds a lock must exceed in age before it may be reclaimed. Unset means reclaim at any age.</td></tr>
+    <tr><td class="p">LockReleaseSameNode</td><td class="d">true</td><td><code>true</code> reclaims only a lock written by this host — a live node's lock is never stolen. <code>false</code> allows reclaiming another node's.</td></tr>
+  </tbody>
+</table>
+<p>A lock file holds <code>random:hostname:hostip:timestamp</code>. The age is the difference between the current lock's timestamp and the new one's; if it cannot be parsed, the lock is left alone rather than reclaimed on a guess.</p>
+<div class="note warn">
+  <b class="tag">After a kill -9</b>
+  <p>The symptom is <code>Couldn't get the lock for processing the file: …</code> on every subsequent poll. Set <code>AutoLockRelease=true</code> with an interval comfortably longer than a normal poll, or delete the stale <code>.lock</code> by hand.</p>
+</div>
+
+<h2>14 · After processing</h2>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix.</p>
+<table>
+  <thead><tr><th style="width:30%">Parameter</th><th style="width:16%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">ActionAfterProcess</td><td class="d">DELETE</td><td><code>MOVE</code> or <code>DELETE</code>, on success.</td></tr>
+    <tr><td class="p">MoveAfterProcess</td><td class="d"><em>none</em></td><td>Destination folder when the action is <code>MOVE</code>. Required in that case.</td></tr>
+    <tr><td class="p">ActionAfterFailure</td><td class="d">DELETE</td><td><code>MOVE</code> or <code>DELETE</code>, on failure.</td></tr>
+    <tr><td class="p">MoveAfterFailure</td><td class="d"><em>none</em></td><td>Destination folder for failed files.</td></tr>
+    <tr><td class="p">ActionAfterErrors</td><td class="d"><em>inherits</em></td><td>Action for files that errored rather than failed outright.</td></tr>
+    <tr><td class="p">MoveAfterErrors</td><td class="d"><em>inherits</em></td><td>Destination for those.</td></tr>
+    <tr><td class="p">MoveAfterFailedMove</td><td class="d"><em>none</em></td><td>Where to put a file whose move itself failed.</td></tr>
+    <tr><td class="p">MoveTimestampFormat</td><td class="d"><em>none</em></td><td>A date pattern appended to the moved file's name, so repeated runs do not overwrite.</td></tr>
+    <tr><td class="p">SubFolderTimestampFormat</td><td class="d"><em>none</em></td><td>A date pattern used to create a dated sub-folder under the destination.</td></tr>
+  </tbody>
+</table>
+<p>A file interrupted by a graceful shutdown is <b>not</b> moved to the failure folder. It stays in the input folder with its checkpoint and is resumed on the next poll.</p>
+<p>A separate failed-record retry family exists (<code>MaxRetryCount</code>, <code>FailedRecordNextRetryDuration</code>, <code>FailedRecordsFileName</code>, <code>FailedRecordsFileDestination</code>, <code>MoveFailedRecordTimestampFormat</code>, <code>MoveAfterFailedMove</code>) and is inherited from the base VFS transport. In streaming mode the per-record error folders above are the ones that matter.</p>
+
+<h2>15 · Remote connections</h2>
+<p><code>transport.vfs.FileURI</code> carries the protocol, the credentials and any VFS options as query parameters.</p>
+<pre><span class="c">// local</span>
+/data/in
+file:///data/in
+
+<span class="c">// sftp, with VFS options</span>
+sftp://user:pass@host:22/incoming?vfs.passive=true
+
+<span class="c">// ftp / ftps</span>
+ftp://user:pass@host/incoming?vfs.passive=true
+
+<span class="c">// smb2</span>
+smb2://user:pass@host/share/incoming</pre>
+<table>
+  <thead><tr><th style="width:18%">Protocol</th><th>Needs</th></tr></thead>
+  <tbody>
+    <tr><td class="p">file</td><td>Nothing. Shipped with MI.</td></tr>
+    <tr><td class="p">ftp / ftps</td><td>Shipped with MI's commons-vfs.</td></tr>
+    <tr><td class="p">sftp</td><td>Shipped with MI's commons-vfs.</td></tr>
+    <tr><td class="p">smb2</td><td>The <code>smbj</code> and <code>asn-one</code> bundles, present in MI 4.1.0. Requires commons-vfs <code>2.2.0-wso2v13.20</code> or later, which carries the sandbox smb2 provider.</td></tr>
+  </tbody>
+</table>
+<p>Passwords in a <code>FileURI</code> are masked in every log line the inbound writes, and never reach the checkpoint.</p>
+
+<h2>16 · Context properties</h2>
+<p>Position properties are stamped on every streamed message, whether the parsed output went to a property or to the body. They let a sequence tell which rows it is holding.</p>
+<table>
+  <thead><tr><th style="width:30%">Property</th><th style="width:12%">Set in</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td class="p">STREAMING_RECORD_NUMBER</td><td class="d">RECORD</td><td>Absolute 1-based record number in the file.</td></tr>
+    <tr><td class="p">STREAMING_CHUNK_NUMBER</td><td class="d">CHUNK</td><td>Absolute 1-based chunk number, continuing correctly across a resume.</td></tr>
+    <tr><td class="p">STREAMING_FIRST_RECORD</td><td class="d">both</td><td>Absolute number of the first record in this message.</td></tr>
+    <tr><td class="p">STREAMING_LAST_RECORD</td><td class="d">both</td><td>Absolute number of the last record in this message.</td></tr>
+    <tr><td class="p">STREAMING_CHUNK_SIZE</td><td class="d">CHUNK</td><td>Records actually in this message — smaller than <code>ChunkSize</code> for the final chunk.</td></tr>
+  </tbody>
+</table>
+
+<h3>Logging progress without a script mediator</h3>
+<p>These are enough to log a line every 10,000 rows with a plain filter. The XPath is true only on the message that crosses a 10,000 boundary:</p>
+<pre>&lt;filter xpath="floor(number(get-property('STREAMING_LAST_RECORD')) div 10000)
+             &amp;gt; floor((number(get-property('STREAMING_FIRST_RECORD')) - 1) div 10000)"&gt;
+    &lt;then&gt;
+        &lt;log level="custom"&gt;
+            &lt;property name="PROGRESS" value="rows streamed"/&gt;
+            &lt;property name="milestone"
+                      expression="substring-before(concat(floor(number(get-property('STREAMING_LAST_RECORD'))
+                                  div 10000) * 10000, '.0'), '.')"/&gt;
+            &lt;property name="chunk" expression="get-property('STREAMING_CHUNK_NUMBER')"/&gt;
+            &lt;property name="rowRange"
+                      expression="concat(get-property('STREAMING_FIRST_RECORD'), '-',
+                                  get-property('STREAMING_LAST_RECORD'))"/&gt;
+        &lt;/log&gt;
+    &lt;/then&gt;
+&lt;/filter&gt;</pre>
+<div class="note">
+  <b class="tag">The substring-before trick</b>
+  <p>XPath 1.0 arithmetic yields a double, so <code>floor(…) * 10000</code> prints as <code>10000.0</code>. Concatenating <code>'.0'</code> and taking <code>substring-before(…, '.')</code> gives a clean integer in both cases.</p>
+</div>
+
+<h2 class="newpage">17 · Four configurations</h2>
+<p>Each one is complete: the inbound, the sequence, and what comes out.</p>
+
+<div class="ex">
+  <h3>1 · CSV in chunks to a property, JSON reply file</h3>
+  <p class="exflow">orders.csv → CHUNK of 2000 → property streamOut → sequence builds a rollup → order-batches.jsonl</p>
+  <p>The workhorse shape for large files. Nothing of the file is in the message body, so the payload stays small and the sequence reads the chunk from a property.</p>
+  <p class="filename">inbound-endpoints/ordersInbound.xml</p>
+<pre class="long">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;inboundEndpoint xmlns="http://ws.apache.org/ns/synapse"
+                 name="ordersInbound"
+                 class="org.wso2.carbon.inbound.streaming.VFSConsumer"
+                 sequence="orderChunkSeq" onError="orderFaultSeq" suspend="false"&gt;
+    &lt;parameters xmlns="http://ws.apache.org/ns/synapse"&gt;
+        &lt;parameter name="scheduleType"&gt;Polling&lt;/parameter&gt;
+        &lt;parameter name="interval"&gt;5000&lt;/parameter&gt;
+        &lt;parameter name="sequential"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="coordination"&gt;true&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.FileURI"&gt;/data/in&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.FileNamePattern"&gt;.*\.csv&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.FileProcessCount"&gt;1&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.Locking"&gt;enable&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.ActionAfterProcess"&gt;MOVE&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.MoveAfterProcess"&gt;/data/out&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.ActionAfterFailure"&gt;MOVE&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.MoveAfterFailure"&gt;/data/fault&lt;/parameter&gt;
+
+        <span class="c">&lt;!-- 2000 rows per message, as JSON objects keyed by the header --&gt;</span>
+        &lt;parameter name="transport.vfs.Streaming"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingMode"&gt;CHUNK&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingInputFormat"&gt;csv&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingChunkSize"&gt;2000&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingBufferSize"&gt;65536&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingCsvHasHeader"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingAddHeadersToEachResult"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingOutputProperty"&gt;streamOut&lt;/parameter&gt;
+
+        <span class="c">&lt;!-- numbers arrive as JSON numbers so the sequence can do arithmetic --&gt;</span>
+        &lt;parameter name="transport.vfs.StreamingCsvDataTypes"&gt;[{"Column Name Or Index":"order_id","Is Column Name":"Yes","Data Type":"Integer"},{"Column Name Or Index":"unit_price","Is Column Name":"Yes","Data Type":"Number"},{"Column Name Or Index":"quantity","Is Column Name":"Yes","Data Type":"Integer"}]&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.ReplyFileURI"&gt;/data/replies&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.ReplyFileName"&gt;order-batches.jsonl&lt;/parameter&gt;
+    &lt;/parameters&gt;
+&lt;/inboundEndpoint&gt;</pre>
+  <p class="filename">sequences/orderChunkSeq.xml</p>
+<pre class="long">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;sequence name="orderChunkSeq" xmlns="http://ws.apache.org/ns/synapse"&gt;
+    &lt;script language="js"&gt;&lt;![CDATA[
+        var rows  = JSON.parse(mc.getProperty('streamOut'));
+        var total = 0, flagged = [];
+        for (var i = 0; i &lt; rows.length; i++) {
+            var line = rows[i].unit_price * rows[i].quantity;
+            total += line;
+            if (line &gt; 10000) { flagged.push(rows[i].order_id); }
+        }
+        mc.setPayloadJSON({
+            chunk:   mc.getProperty('STREAMING_CHUNK_NUMBER'),
+            rows:    rows.length,
+            revenue: Math.round(total * 100) / 100,
+            review:  flagged
+        });
+    ]]&gt;&lt;/script&gt;
+&lt;/sequence&gt;</pre>
+  <p class="filename">/data/replies/order-batches.jsonl — one line per chunk</p>
+<pre>{"chunk":"1","rows":2000,"revenue":418233.17,"review":[1041,1388]}
+{"chunk":"2","rows":2000,"revenue":402911.80,"review":[]}
+{"chunk":"3","rows":1312,"revenue":264550.42,"review":[5120]}</pre>
+</div>
+
+<div class="ex">
+  <h3>2 · CSV row by row into the body, XML reply file</h3>
+  <p class="exflow">customers.csv → RECORD → message body → payloadFactory → response.xml</p>
+  <p>With no <code>StreamingOutputProperty</code>, the parsed record becomes the body. Because the sequence leaves XML behind, the reply file is written through the normal message formatter.</p>
+  <p class="filename">inbound-endpoints/customerInbound.xml — parameters only</p>
+<pre class="long">&lt;parameter name="scheduleType"&gt;Polling&lt;/parameter&gt;
+&lt;parameter name="interval"&gt;5000&lt;/parameter&gt;
+
+&lt;parameter name="transport.vfs.FileURI"&gt;/data/in&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.FileNamePattern"&gt;customers.*\.csv&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.ActionAfterProcess"&gt;MOVE&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.MoveAfterProcess"&gt;/data/out&lt;/parameter&gt;
+
+&lt;parameter name="transport.vfs.Streaming"&gt;true&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingMode"&gt;RECORD&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingInputFormat"&gt;csv&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingCsvHasHeader"&gt;true&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingAddHeadersToEachResult"&gt;true&lt;/parameter&gt;
+<span class="c">&lt;!-- no StreamingOutputProperty: the record lands in the body --&gt;</span>
+
+&lt;parameter name="transport.vfs.ReplyFileURI"&gt;/data/replies&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.ReplyFileName"&gt;customers.xml&lt;/parameter&gt;</pre>
+  <p class="filename">sequences/customerSeq.xml</p>
+<pre class="long">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;sequence name="customerSeq" xmlns="http://ws.apache.org/ns/synapse"&gt;
+    &lt;payloadFactory media-type="xml"&gt;
+        &lt;format&gt;&lt;customer row="$1"&gt;&lt;id&gt;$2&lt;/id&gt;&lt;name&gt;$3&lt;/name&gt;&lt;/customer&gt;&lt;/format&gt;
+        &lt;args&gt;
+            &lt;arg expression="get-property('STREAMING_RECORD_NUMBER')"/&gt;
+            &lt;arg expression="json-eval($.id)"/&gt;
+            &lt;arg expression="json-eval($.name)"/&gt;
+        &lt;/args&gt;
+    &lt;/payloadFactory&gt;
+&lt;/sequence&gt;</pre>
+  <div class="note stop">
+    <b class="tag">Required for the body path with CSV</b>
+    <p>A raw CSV body needs a plain-text message builder, or MI tries to parse it as XML and every record fails with <code>Unexpected character 's' (code 115) in prolog</code>. Add this to <code>&lt;MI_HOME&gt;/conf/deployment.toml</code> and restart:</p>
+  </div>
+  <p class="filename">conf/deployment.toml</p>
+<pre>[[custom_message_builders]]
+content_type = "text/csv"
+class = "org.apache.axis2.format.PlainTextBuilder"</pre>
+</div>
+
+<div class="ex">
+  <h3>3 · Streaming a large JSON array</h3>
+  <p class="exflow">catalog.json → JsonPath $.products[*] → RECORD → property item</p>
+  <p>A JSON document too large to hold whole. The selector picks the repeating element; everything outside it is ignored.</p>
+  <p class="filename">/data/in/catalog.json — the shape being streamed</p>
+<pre>{
+  "meta": { "generated": "2026-10-06", "count": 4200000 },
+  "products": [
+    { "sku": "A-1001", "name": "Hex bolt M8",  "price": 0.42, "stock": 18400 },
+    { "sku": "A-1002", "name": "Hex bolt M10", "price": 0.55, "stock": 12750 }
+  ]
+}</pre>
+  <p class="filename">inbound-endpoints/catalogInbound.xml — parameters only</p>
+<pre class="long">&lt;parameter name="scheduleType"&gt;Polling&lt;/parameter&gt;
+&lt;parameter name="interval"&gt;10000&lt;/parameter&gt;
+
+&lt;parameter name="transport.vfs.FileURI"&gt;/data/in&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.FileNamePattern"&gt;catalog.*\.json&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.ActionAfterProcess"&gt;MOVE&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.MoveAfterProcess"&gt;/data/out&lt;/parameter&gt;
+
+&lt;parameter name="transport.vfs.Streaming"&gt;true&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingMode"&gt;RECORD&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingInputFormat"&gt;json&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingJsonPath"&gt;$.products[*]&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingBufferSize"&gt;65536&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.StreamingOutputProperty"&gt;item&lt;/parameter&gt;
+
+&lt;parameter name="transport.vfs.ReplyFileURI"&gt;/data/replies&lt;/parameter&gt;
+&lt;parameter name="transport.vfs.ReplyFileName"&gt;restock.jsonl&lt;/parameter&gt;</pre>
+  <p class="filename">sequences/catalogSeq.xml</p>
+<pre class="long">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;sequence name="catalogSeq" xmlns="http://ws.apache.org/ns/synapse"&gt;
+    &lt;property name="sku"   expression="json-eval($.sku)"   scope="default"/&gt;
+    &lt;property name="stock" expression="json-eval($.stock)" scope="default"/&gt;
+    &lt;filter xpath="number(get-property('stock')) &amp;lt; 1000"&gt;
+        &lt;then&gt;
+            &lt;payloadFactory media-type="json"&gt;
+                &lt;format&gt;{"sku":"$1","stock":$2,"record":$3}&lt;/format&gt;
+                &lt;args&gt;
+                    &lt;arg expression="get-property('sku')"/&gt;
+                    &lt;arg expression="get-property('stock')"/&gt;
+                    &lt;arg expression="get-property('STREAMING_RECORD_NUMBER')"/&gt;
+                &lt;/args&gt;
+            &lt;/payloadFactory&gt;
+        &lt;/then&gt;
+        &lt;else&gt;&lt;drop/&gt;&lt;/else&gt;
+    &lt;/filter&gt;
+&lt;/sequence&gt;</pre>
+  <p>Only the low-stock items reach <code>restock.jsonl</code>; the rest are dropped and nothing is appended for them.</p>
+</div>
+
+<div class="ex">
+  <h3>4 · Clustered, with checkpointing and completion sequences</h3>
+  <p class="exflow">two nodes · shared GovRegRoot · resume across a restart · orderCompleteSeq at the end</p>
+  <p>The full production shape. One node streams; if it stops, the other picks the file up and continues from the last checkpoint rather than from row 1.</p>
+  <p class="filename">inbound-endpoints/bigOrdersInbound.xml</p>
+<pre class="long">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;inboundEndpoint xmlns="http://ws.apache.org/ns/synapse"
+                 name="bigOrdersInbound"
+                 class="org.wso2.carbon.inbound.streaming.VFSConsumer"
+                 sequence="orderEnrichSeq" onError="orderFaultSeq" suspend="false"&gt;
+    &lt;parameters xmlns="http://ws.apache.org/ns/synapse"&gt;
+        &lt;parameter name="scheduleType"&gt;Polling&lt;/parameter&gt;
+        &lt;parameter name="interval"&gt;5000&lt;/parameter&gt;
+        &lt;parameter name="sequential"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="coordination"&gt;true&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.FileURI"&gt;/data/in&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.FileNamePattern"&gt;.*\.csv&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.FileProcessCount"&gt;1&lt;/parameter&gt;
+
+        <span class="c">&lt;!-- reclaim a .lock left by a hard kill; 30s is well past a normal poll --&gt;</span>
+        &lt;parameter name="transport.vfs.Locking"&gt;enable&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.AutoLockRelease"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.AutoLockReleaseInterval"&gt;30000&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.LockReleaseSameNode"&gt;false&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.ActionAfterProcess"&gt;MOVE&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.MoveAfterProcess"&gt;/data/out&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.ActionAfterFailure"&gt;MOVE&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.MoveAfterFailure"&gt;/data/fault&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.Streaming"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingMode"&gt;CHUNK&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingInputFormat"&gt;csv&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingChunkSize"&gt;2000&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingBufferSize"&gt;65536&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingCsvHasHeader"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingAddHeadersToEachResult"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingOutputProperty"&gt;streamOut&lt;/parameter&gt;
+
+        <span class="c">&lt;!-- interval is in chunks here, so 50 = a resume point every 100k rows --&gt;</span>
+        &lt;parameter name="transport.vfs.StreamingCheckpointEnabled"&gt;true&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingCheckpointInterval"&gt;50&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.StreamingFileCompleteSequence"&gt;orderCompleteSeq&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingFileFailureSequence"&gt;orderFailedSeq&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.StreamingMediationErrorAction"&gt;MOVE&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.StreamingMediationErrorFolder"&gt;/data/fault&lt;/parameter&gt;
+
+        &lt;parameter name="transport.vfs.ReplyFileURI"&gt;/data/replies&lt;/parameter&gt;
+        &lt;parameter name="transport.vfs.ReplyFileName"&gt;order-batches.jsonl&lt;/parameter&gt;
+    &lt;/parameters&gt;
+&lt;/inboundEndpoint&gt;</pre>
+  <p class="filename">sequences/orderCompleteSeq.xml</p>
+<pre class="long">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;sequence name="orderCompleteSeq" xmlns="http://ws.apache.org/ns/synapse"&gt;
+    &lt;log level="custom"&gt;
+        &lt;property name="FILE_DONE"   expression="get-property('STREAMING_FILE_NAME')"/&gt;
+        &lt;property name="status"      expression="get-property('STREAMING_STATUS')"/&gt;
+        &lt;property name="processed"   expression="get-property('STREAMING_PROCESSED')"/&gt;
+        &lt;property name="parseFail"   expression="get-property('STREAMING_PARSE_FAILED')"/&gt;
+        &lt;property name="mediateFail" expression="get-property('STREAMING_MEDIATION_FAILED')"/&gt;
+    &lt;/log&gt;
+&lt;/sequence&gt;</pre>
+  <p>A verified handoff on this configuration, with a 1&nbsp;GB file of 8,663,312 rows:</p>
+  <table>
+    <thead><tr><th style="width:52%">Step</th><th style="width:14%">Node</th><th>Records</th></tr></thead>
+    <tbody>
+      <tr><td>File copied in; node1 takes the lock</td><td class="d">node1</td><td class="d">1 → 2,812,000</td></tr>
+      <tr><td>node1 killed; checkpoint written</td><td class="d">node1</td><td class="d">@ 2,812,000</td></tr>
+      <tr><td>node2, already polling, takes over</td><td class="d">node2</td><td class="d">2,812,000 → 7,506,000</td></tr>
+      <tr><td>node2 killed; checkpoint written</td><td class="d">node2</td><td class="d">@ 7,506,000</td></tr>
+      <tr><td>node1 restarted, finishes the file</td><td class="d">node1</td><td class="d">7,506,000 → 8,663,312</td></tr>
+    </tbody>
+  </table>
+  <p>The three segments sum to exactly 8,663,312 — no gap and no re-delivery.</p>
+</div>
+
+<h2>18 · Gotchas</h2>
+<ul>
+  <li><b>Both streaming switches are needed.</b> <code>transport.vfs.Streaming</code> defaults to <code>false</code>; <code>StreamingMode</code> alone does nothing.</li>
+  <li><b>Jars go in <code>lib/</code>, not <code>dropins/</code>.</b> Copy the provided <code>mi-inbound-streaming-1.0.0.jar</code> and <code>commons-csv-1.14.1.jar</code> into <code>&lt;MI_HOME&gt;/lib/</code>, delete any stale <code>dropins/mi_inbound_streaming_*.jar</code> so MI regenerates the OSGi bundle, then restart. MI 4.1.0 does not ship commons-csv.</li>
+  <li><b>A raw CSV body needs <code>PlainTextBuilder</code></b> registered for <code>text/csv</code> in <code>deployment.toml</code>. Not needed when the output goes to a property.</li>
+  <li><b>A multi-line <code>&lt;format&gt;</code> breaks JSON Lines.</b> Keep <code>payloadFactory</code> formats on one line when writing to a <code>.jsonl</code> reply file.</li>
+  <li><b>Do not symlink the registry</b> to share it between nodes. Point <code>GovRegRoot</code> at the shared path instead.</li>
+  <li><b>Stopping MI:</b> the process matches <code>micro.integrator.bootstrap.Bootstrap</code>, not <code>wso2carbon</code>. A forgotten node that still polls the same folder will compete for files and clear checkpoints out from under the node you are watching.</li>
+  <li><b>A re-copied file still resumes.</b> Identity is content, not timestamp, so moving a file out and copying it back does not invalidate its checkpoint.</li>
+</ul>
+
+<footer>
+  Built against WSO2 Micro Integrator 4.1.0 · Synapse 2.1.7-wso2v271 · commons-vfs 2.2.0-wso2v13.20 · commons-csv 1.14.1.
+</footer>
+
+</body>
+</html>

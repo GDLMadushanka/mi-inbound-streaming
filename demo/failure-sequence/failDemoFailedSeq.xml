@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- transport.vfs.StreamingFileFailureSequence points here. Fires once, after the file
+     has been abandoned. The body is the JSON summary; the same values are properties. -->
+<sequence name="failDemoFailedSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="=== FILE FAILED ===" expression="get-property('STREAMING_FILE_NAME')"/>
+        <property name="uri"             expression="get-property('STREAMING_FILE_URI')"/>
+        <property name="status"          expression="get-property('STREAMING_STATUS')"/>
+        <property name="processed"       expression="get-property('STREAMING_PROCESSED')"/>
+        <property name="parseFailed"     expression="get-property('STREAMING_PARSE_FAILED')"/>
+        <property name="mediationFailed" expression="get-property('STREAMING_MEDIATION_FAILED')"/>
+        <property name="summaryBody"     expression="json-eval($)"/>
+    </log>
+</sequence>

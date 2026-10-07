@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (c) 2026, WSO2 LLC. (http://www.wso2.org) All Rights Reserved.
+   WSO2 LLC. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied. See the License for the
+   specific language governing permissions and limitations
+   under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.wso2.integration.inbound.streaming</groupId>
+    <artifactId>mi-inbound-streaming</artifactId>
+    <version>1.0.0</version>
+    <name>File Event Listener (Streaming)</name>
+    <description>File inbound endpoint with streaming ingestion, ported to WSO2 MI 4.1.0</description>
+    <parent>
+        <groupId>org.wso2</groupId>
+        <artifactId>wso2</artifactId>
+        <version>1.4</version>
+    </parent>
+
+    <scm>
+        <connection>
+            scm:git:https://github.com/wso2-extensions/mi-inbound-file.git
+        </connection>
+        <url>https://github.com/wso2-extensions/mi-inbound-file.git</url>
+        <developerConnection>
+            scm:git:https://github.com/wso2-extensions/mi-inbound-file
+        </developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.wso2.ei</groupId>
+            <artifactId>org.wso2.micro.integrator.inbound.endpoint</artifactId>
+            <version>${carbon.mediation.version}</version>
+        </dependency>
+
+        <!-- MI 4.1.0 ships commons-vfs 2.2.0-wso2v13.20 (bundled as
+             wso2/components/plugins/commons-vfs2_2.2.0.wso2v13_20.jar). Two things differ from the
+             2.10.x fork used by MI 4.5+:
+               1. it is NOT package-relocated - its classes live in org.apache.commons.vfs2, not
+                  org.wso2.org.apache.commons.vfs2 (only the Maven groupId carries the wso2 prefix);
+               2. the smb2 provider, including Smb2FileSystemConfigBuilder that Utils configures,
+                  lives in commons-vfs2-sandbox on this line, and only from the .20 update onward -
+                  plain 2.2.0-wso2v13 does not carry it. -->
+        <dependency>
+            <groupId>org.wso2.org.apache.commons</groupId>
+            <artifactId>commons-vfs2</artifactId>
+            <version>${commons.vfs2.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.org.apache.commons</groupId>
+            <artifactId>commons-vfs2-sandbox</artifactId>
+            <version>${commons.vfs2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.synapse</groupId>
+            <artifactId>synapse-commons</artifactId>
+            <version>${synapse.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.synapse</groupId>
+            <artifactId>synapse-core</artifactId>
+            <version>${synapse.version}</version>
+        </dependency>
+
+        <!-- SMB2 support: Utils reads com.hierynomus.msdtyp.AccessMask for the disk-share
+             access mask. Versions match the smbj/asn-one bundles shipped in MI 4.1.0. -->
+        <dependency>
+            <groupId>com.hierynomus.wso2</groupId>
+            <artifactId>smbj</artifactId>
+            <version>${com.hierynomus.smbj.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hierynomus.wso2</groupId>
+            <artifactId>asn-one</artifactId>
+            <version>${com.hierynomus.asn1.version}</version>
+        </dependency>
+
+        <!-- CSV Streaming Support. Not shipped by MI 4.1.0, so it must be copied into the
+             runtime alongside this inbound (see descriptor.yml). -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons.csv.version}</version>
+        </dependency>
+
+        <!-- Gson builds the streaming output payloads. Provided by the MI runtime; pinned to
+             the version MI 4.1.0 ships, because JsonParser.parseString(String) (used by Utils)
+             only exists from Gson 2.8.6 onward and the version pulled in transitively is older. -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- JSON Streaming Support. Provided by the MI runtime, so scoped 'provided'
+             (compile-only) to avoid bundling a second Jackson and risking classloader conflicts.
+             jackson-core and jackson-annotations are declared explicitly, not left to transitive
+             resolution: synapse/carbon drag in 2.13.1 of both, and Maven's nearest-wins would pair
+             them with databind 2.21.5, whose static initialisation then fails
+             (NoClassDefFoundError: Could not initialize class ObjectMapper) on the test classpath.
+             The versions here are exactly the ones MI 4.1.0 ships. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <filters>
+                        <filter>${basedir}/src/main/assembly/filter.properties</filter>
+                    </filters>
+                    <descriptors>
+                        <descriptor>src/main/assembly/zip-assembly.xml</descriptor>
+                    </descriptors>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>5.1.8</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Export-Package>
+                            org.wso2.carbon.inbound.streaming.*;version="${project.version}",
+                        </Export-Package>
+                        <Import-Package>
+                            !javax.xml.namespace,
+                            javax.xml.namespace;
+                            version=0.0.0,
+                            org.wso2.carbon.inbound.endpoint.protocol.generic;version="0.0.0",
+                            *;resolution:=optional,
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>nexus-releases</id>
+            <name>WSO2 Release Distribution Repository</name>
+            <url>https://maven.wso2.org/nexus/content/repositories/releases/</url>
+        </repository>
+    </distributionManagement>
+    <repositories>
+        <repository>
+            <id>wso2-nexus</id>
+            <name>WSO2 internal Repository</name>
+            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </repository>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Pinned to what WSO2 MI 4.1.0 actually ships. The inbound-endpoint version is the
+             update build (4.1.0.142) rather than base 4.1.0: GenericPollingConsumer.resume(),
+             which VFSConsumer overrides, only exists from the update stream. -->
+        <carbon.mediation.version>4.1.0.142</carbon.mediation.version>
+        <synapse.version>2.1.7-wso2v271</synapse.version>
+        <commons.vfs2.version>2.2.0-wso2v13.20</commons.vfs2.version>
+        <com.hierynomus.smbj.version>0.11.3.wso2v1</com.hierynomus.smbj.version>
+        <com.hierynomus.asn1.version>0.6.0.wso2v1</com.hierynomus.asn1.version>
+        <jackson.version>2.21.5</jackson.version>
+        <jackson.annotations.version>2.21</jackson.annotations.version>
+        <gson.version>2.9.0</gson.version>
+        <commons.csv.version>1.14.1</commons.csv.version>
+        <junit.version>4.13.2</junit.version>
+    </properties>
+</project>

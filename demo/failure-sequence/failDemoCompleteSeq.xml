@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="failDemoCompleteSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="=== FILE COMPLETE ===" expression="get-property('STREAMING_FILE_NAME')"/>
+        <property name="status"      expression="get-property('STREAMING_STATUS')"/>
+        <property name="processed"   expression="get-property('STREAMING_PROCESSED')"/>
+        <property name="parseFailed" expression="get-property('STREAMING_PARSE_FAILED')"/>
+    </log>
+</sequence>
