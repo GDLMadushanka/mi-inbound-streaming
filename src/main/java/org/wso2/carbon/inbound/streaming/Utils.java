@@ -37,9 +37,11 @@ import org.apache.commons.vfs2.provider.UriParser;
 import org.apache.commons.vfs2.provider.ftps.FtpsDataChannelProtectionLevel;
 import org.apache.commons.vfs2.provider.ftps.FtpsFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.ftps.FtpsMode;
+import org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.smb2.Smb2FileSystemConfigBuilder;
 import org.apache.commons.vfs2.util.DelegatingFileSystemOptionsBuilder;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -416,11 +418,17 @@ public class Utils {
         for (Map.Entry<String, String> entry : options.entrySet()) {
             for (VFSConstants.SFTP_FILE_OPTION option : VFSConstants.SFTP_FILE_OPTION.values()) {
                 if (entry.getKey().equals(option.toString()) && entry.getValue() != null) {
+                    // The timeouts are Integer-typed on the config builder; the delegating builder
+                    // sets strings. They are applied below instead.
+                    if (isSftpTimeoutOption(entry.getKey())) {
+                        continue;
+                    }
                     delegate.setConfigString(opts, VFSConstants.SCHEME_SFTP, entry.getKey().toLowerCase(),
                             entry.getValue());
                 }
             }
         }
+        applySftpTimeouts(opts, options);
 
         FtpsFileSystemConfigBuilder configBuilder = FtpsFileSystemConfigBuilder.getInstance();
 
@@ -522,6 +530,96 @@ public class Utils {
         }
 
         return outDiskShareAccessMasks;
+    }
+
+    /**
+     * Set once the runtime turns out to have no SFTP connect timeout, so the attempt and its log
+     * line happen at most once per server rather than on every inbound init.
+     */
+    private static final AtomicBoolean SFTP_CONNECT_TIMEOUT_UNSUPPORTED = new AtomicBoolean();
+
+    private static boolean isSftpTimeoutOption(String key) {
+        return VFSConstants.SFTP_TIMEOUT_OPTION.equals(key)
+                || VFSConstants.SFTP_CONNECT_TIMEOUT_OPTION.equals(key);
+    }
+
+    /**
+     * Apply the SFTP socket timeouts. Without them jsch waits forever, so a source that accepts a
+     * connection and then stops responding blocks the polling thread for good - including on the
+     * metadata calls made before a file is even read, such as the {@code exists()} in
+     * {@link #isFailRecord}.
+     * <p>
+     * The connect timeout always gets a value where the runtime supports one; the read timeout
+     * only when configured. See {@link VFSConstants#SFTP_TIMEOUT_OPTION} for why the read timeout
+     * has no default, and {@link VFSConstants#SFTP_CONNECT_TIMEOUT_OPTION} for the runtimes that
+     * honour the connect timeout.
+     */
+    private static void applySftpTimeouts(FileSystemOptions opts, Map<String, String> options) {
+        SftpFileSystemConfigBuilder sftp = SftpFileSystemConfigBuilder.getInstance();
+
+        Integer readTimeout = parseTimeout(options.get(VFSConstants.SFTP_TIMEOUT_OPTION),
+                VFSConstants.SFTP_PREFIX + VFSConstants.SFTP_TIMEOUT_OPTION);
+        if (readTimeout != null) {
+            sftp.setTimeout(opts, readTimeout);
+        }
+
+        Integer connectTimeout = parseTimeout(options.get(VFSConstants.SFTP_CONNECT_TIMEOUT_OPTION),
+                VFSConstants.SFTP_PREFIX + VFSConstants.SFTP_CONNECT_TIMEOUT_OPTION);
+        applySftpConnectTimeout(sftp, opts,
+                connectTimeout != null ? connectTimeout : VFSConstants.DEFAULT_SFTP_CONNECT_TIMEOUT);
+    }
+
+    /**
+     * Set the connect timeout where the runtime has one.
+     * <p>
+     * Called directly and guarded by {@code NoSuchMethodError} rather than looked up reflectively:
+     * {@code Class.getMethod} resolves every public signature on
+     * {@code SftpFileSystemConfigBuilder}, one of which references {@code com.jcraft.jsch.UserInfo},
+     * so a lookup fails wherever jsch is not loadable and would take the whole of {@code Utils}
+     * down with it. The direct call compiles against the pinned {@code 2.2.0-wso2v13.20} and
+     * raises {@code NoSuchMethodError} only on a server still shipping the older {@code _18} jar,
+     * which is precisely the case being handled.
+     */
+    private static void applySftpConnectTimeout(SftpFileSystemConfigBuilder sftp,
+                                                FileSystemOptions opts, Integer millis) {
+        if (SFTP_CONNECT_TIMEOUT_UNSUPPORTED.get()) {
+            return;
+        }
+        try {
+            sftp.setConnectTimeout(opts, millis);
+        } catch (NoSuchMethodError olderCommonsVfs) {
+            if (SFTP_CONNECT_TIMEOUT_UNSUPPORTED.compareAndSet(false, true)) {
+                log.info("This commons-vfs has no SFTP connect timeout; "
+                        + VFSConstants.SFTP_PREFIX + VFSConstants.SFTP_CONNECT_TIMEOUT_OPTION
+                        + " is ignored and " + VFSConstants.SFTP_PREFIX
+                        + VFSConstants.SFTP_TIMEOUT_OPTION + " bounds the connect as well. Update "
+                        + "the server to a build carrying commons-vfs 2.2.0-wso2v13.20 or later to "
+                        + "set the two separately.");
+            }
+        }
+    }
+
+    /**
+     * Parse a millisecond timeout, or return {@code null} if it is absent or unusable. A bad value
+     * is warned about and ignored rather than failing the inbound: the alternative is an endpoint
+     * that will not start because of a typo in one optional tuning parameter.
+     */
+    private static Integer parseTimeout(String value, String paramName) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            int millis = Integer.parseInt(value.trim());
+            if (millis <= 0) {
+                log.warn(paramName + " must be a positive number of milliseconds but was '" + value
+                        + "'; ignoring it.");
+                return null;
+            }
+            return millis;
+        } catch (NumberFormatException e) {
+            log.warn(paramName + " is not a number: '" + value + "'; ignoring it.");
+            return null;
+        }
     }
 
     public static boolean isFailRecord(FileSystemManager fsManager, FileObject fo, FileSystemOptions fso) {

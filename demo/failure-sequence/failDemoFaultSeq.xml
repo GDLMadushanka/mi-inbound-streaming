@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="failDemoFaultSeq" xmlns="http://ws.apache.org/ns/synapse">
     <log level="custom">
-        <property name="FAULT" expression="get-property('ERROR_MESSAGE')"/>
+        <property name="&gt;&gt;&gt; onError FIRED" expression="get-property('STREAMING_RECORD_NUMBER')"/>
     </log>
+    <!-- Report the failure back to the inbound: without this the record counts as processed. -->
+    <property name="ERROR_CODE" value="VFS_MEDIATION_FAILED" scope="transport"/>
 </sequence>

@@ -264,6 +264,46 @@ public class VFSConstants {
     public static final String STR_SPLITER = ":";
     public static final String LOCK_FILE_SUFFIX = ".lock";
     // sftp scheme file option list
-    public static enum SFTP_FILE_OPTION {Identities, UserDirIsRoot, IdentityPassPhrase}
+    /**
+     * SFTP options settable as {@code transport.vfs.SFTP<Name>} inbound parameters or as query
+     * parameters on the file URI. {@code Timeout} is in milliseconds and is applied through
+     * {@code SftpFileSystemConfigBuilder} rather than the delegating builder, because it is typed
+     * as {@code Integer} rather than {@code String}.
+     */
+    public static enum SFTP_FILE_OPTION {
+        Identities, UserDirIsRoot, IdentityPassPhrase, Timeout, ConnectTimeout
+    }
+
+    /**
+     * Timeout for an SFTP session, in milliseconds.
+     * <p>
+     * On commons-vfs {@code 2.2.0-wso2v13.20} (MI 4.1.0 at a current update level) this is the
+     * socket read timeout and {@link #SFTP_CONNECT_TIMEOUT_OPTION} bounds the connect separately.
+     * On the older {@code _18} jar it is the only knob there is, and it bounds both: that
+     * {@code SftpClientFactory} calls {@code Session.setTimeout(int)} and then
+     * {@code Session.connect()} with no argument, and jsch's no-arg connect reuses the session
+     * timeout.
+     * <p>
+     * Left unset by default: the value also bounds reads taken while a file is being streamed, and
+     * those are paced by how fast the sequence mediates, so a global default risks killing a
+     * healthy but slow transfer. Set it when the source can stall.
+     */
+    public static final String SFTP_TIMEOUT_OPTION = "Timeout";
+
+    /**
+     * TCP connect timeout for an SFTP session, in milliseconds.
+     * <p>
+     * Honoured only by commons-vfs {@code 2.2.0-wso2v13.20} and later, whose
+     * {@code SftpClientFactory} reads it and calls {@code Session.connect(int)}. On the older
+     * {@code _18} jar the config builder has no such setter at all, so it is skipped there and
+     * {@link #SFTP_TIMEOUT_OPTION} covers the connect instead.
+     * <p>
+     * Unlike the read timeout this has no legitimate long case, so it defaults to
+     * {@link #DEFAULT_SFTP_CONNECT_TIMEOUT} rather than jsch's "wait forever".
+     */
+    public static final String SFTP_CONNECT_TIMEOUT_OPTION = "ConnectTimeout";
+
+    /** 30s. A TCP connect that has not completed by now is not going to. */
+    public static final int DEFAULT_SFTP_CONNECT_TIMEOUT = 30000;
 
 }

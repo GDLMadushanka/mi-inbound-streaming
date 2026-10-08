@@ -548,6 +548,42 @@ smb2://user:pass@host/share/incoming</pre>
     <tr><td class="p">smb2</td><td>The <code>smbj</code> and <code>asn-one</code> bundles, present in MI 4.1.0. Requires commons-vfs <code>2.2.0-wso2v13.20</code> or later, which carries the sandbox smb2 provider.</td></tr>
   </tbody>
 </table>
+<h3>SFTP tuning</h3>
+<p class="prefix">Names below omit the <code>transport.vfs.</code> prefix. Each can also be given as a query parameter on the <code>FileURI</code> without the <code>SFTP</code> prefix, e.g. <code>?Timeout=45000</code>.</p>
+<table>
+  <thead><tr><th style="width:30%">Parameter</th><th style="width:13%">Default</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="p">SFTPTimeout</td><td class="d"><em>none</em></td><td>Socket read timeout in milliseconds for the SFTP session.</td></tr>
+    <tr><td class="p">SFTPConnectTimeout</td><td class="d">30000</td><td>TCP connect timeout in milliseconds. Defaulted deliberately &mdash; jsch otherwise waits forever, and a connect that has not completed in 30s never will.</td></tr>
+    <tr><td class="p">SFTPIdentities</td><td class="d"><em>none</em></td><td>Private key file(s) for key-based authentication.</td></tr>
+    <tr><td class="p">SFTPIdentityPassPhrase</td><td class="d"><em>none</em></td><td>Passphrase for those keys.</td></tr>
+    <tr><td class="p">SFTPUserDirIsRoot</td><td class="d">true</td><td>Whether a relative path is resolved against the login directory.</td></tr>
+  </tbody>
+</table>
+<div class="note stop">
+  <b class="tag">Why the poller can hang without this</b>
+  <p>jsch has no timeout by default. A server that accepts the TCP connection and then stops
+  responding blocks the polling thread indefinitely &mdash; not only while reading a file, but on
+  the metadata calls made before one is even opened, such as the <code>exists()</code> check in
+  <code>Utils.isFailRecord</code>. One stalled host takes the inbound down until MI is restarted.
+  Set <code>SFTPTimeout</code> on any SFTP source you do not control.</p>
+</div>
+<div class="note warn">
+  <b class="tag">Choosing a value, and why there is no default</b>
+  <p><code>SFTPTimeout</code> also bounds reads taken <em>while a file is streaming</em>, and those
+  are paced by how fast your sequence mediates each record &mdash; not by the network. Set it
+  comfortably above the slowest gap between two reads, not just above the round-trip time, or a
+  healthy but slow transfer is cut off. There is no safe universal value, so there is no default.</p>
+</div>
+<div class="note warn">
+  <b class="tag">Update level matters</b>
+  <p><code>SFTPConnectTimeout</code> is honoured from commons-vfs <code>2.2.0-wso2v13.20</code>
+  (MI 4.1.0 at a current update level), whose <code>SftpClientFactory</code> reads it and calls
+  <code>Session.connect(int)</code>. A server still on <code>_18</code> has no such setter and
+  calls <code>Session.connect()</code> with no argument; the inbound detects that, logs one line,
+  and lets <code>SFTPTimeout</code> bound the connect as well. One binary works on both.</p>
+</div>
+
 <p>Passwords in a <code>FileURI</code> are masked in every log line the inbound writes, and never reach the checkpoint.</p>
 
 <h2>16 · Context properties</h2>

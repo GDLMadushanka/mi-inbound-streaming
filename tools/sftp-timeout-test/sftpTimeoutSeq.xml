@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="sftpTimeoutSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="SFTP_ROW" expression="get-property('STREAMING_RECORD_NUMBER')"/>
+        <property name="data" expression="get-property('rowOut')"/>
+    </log>
+</sequence>

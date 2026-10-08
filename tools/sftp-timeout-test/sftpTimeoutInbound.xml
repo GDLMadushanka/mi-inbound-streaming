@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inboundEndpoint xmlns="http://ws.apache.org/ns/synapse"
+                 name="sftpTimeoutInbound"
+                 class="org.wso2.carbon.inbound.streaming.VFSConsumer"
+                 sequence="sftpTimeoutSeq" onError="sftpTimeoutFaultSeq" suspend="false">
+    <parameters xmlns="http://ws.apache.org/ns/synapse">
+        <parameter name="scheduleType">Polling</parameter>
+        <parameter name="interval">10000</parameter>
+        <parameter name="sequential">true</parameter>
+        <parameter name="coordination">true</parameter>
+
+        <!-- Points at toxiproxy, not the server, so the stall can be switched on and off. -->
+        <parameter name="transport.vfs.FileURI">sftp://SFTP_USER:SFTP_PASS@127.0.0.1:2222/test</parameter>
+        <parameter name="transport.vfs.FileNamePattern">.*\.csv</parameter>
+        <parameter name="transport.vfs.FileProcessCount">1</parameter>
+
+        <!-- The parameter under test. -->
+        <parameter name="transport.vfs.SFTPTimeout">5000</parameter>
+        <parameter name="transport.vfs.SFTPConnectTimeout">5000</parameter>
+
+        <!-- MOVE, not DELETE, so the uploaded file survives the run. -->
+        <parameter name="transport.vfs.ActionAfterProcess">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterProcess">sftp://SFTP_USER:SFTP_PASS@127.0.0.1:2222/test/processed</parameter>
+        <parameter name="transport.vfs.ActionAfterFailure">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterFailure">sftp://SFTP_USER:SFTP_PASS@127.0.0.1:2222/test/failed</parameter>
+        <parameter name="transport.vfs.CreateFolder">true</parameter>
+
+        <parameter name="transport.vfs.Streaming">true</parameter>
+        <parameter name="transport.vfs.StreamingMode">RECORD</parameter>
+        <parameter name="transport.vfs.StreamingInputFormat">csv</parameter>
+        <parameter name="transport.vfs.StreamingCsvHasHeader">true</parameter>
+        <parameter name="transport.vfs.StreamingAddHeadersToEachResult">true</parameter>
+        <parameter name="transport.vfs.StreamingOutputProperty">rowOut</parameter>
+    </parameters>
+</inboundEndpoint>

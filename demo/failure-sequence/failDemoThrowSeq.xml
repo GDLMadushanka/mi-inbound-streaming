@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- OPTIONAL: copy over failDemoSeq.xml (keeping the name) to test onError instead of the
+     file-failure callback. Row 2 raises a fault; rows 1 and 3 mediate normally and the file
+     still COMPLETES. -->
+<sequence name="failDemoSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="ROW" expression="get-property('STREAMING_RECORD_NUMBER')"/>
+    </log>
+    <filter xpath="get-property('STREAMING_RECORD_NUMBER') = '2'">
+        <then>
+            <script language="js"><![CDATA[
+                throw new Error("deliberate mediation failure on row 2");
+            ]]></script>
+        </then>
+    </filter>
+    <payloadFactory media-type="json">
+        <format>{"row":$1,"ok":true}</format>
+        <args><arg expression="get-property('STREAMING_RECORD_NUMBER')"/></args>
+    </payloadFactory>
+</sequence>

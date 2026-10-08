@@ -1,0 +1,9 @@
+# commons-vfs members this inbound calls that may be absent on an older server and are guarded in
+# code, so check-runtime-api.sh reports them instead of failing. One per line, exactly as the
+# checker prints them: <dotted.Class>.<method> <descriptor>
+#
+# setConnectTimeout exists from commons-vfs 2.2.0-wso2v13.20 (MI 4.1.0 at a current update level).
+# A server that has not taken that update ships commons-vfs2_2.2.0.wso2v13_18, which has neither
+# the setter nor a SftpClientFactory that reads it. Utils.applySftpConnectTimeout calls it directly
+# and catches NoSuchMethodError, falling back to the session timeout.
+org.apache.commons.vfs2.provider.sftp.SftpFileSystemConfigBuilder.setConnectTimeout (Lorg/apache/commons/vfs2/FileSystemOptions;Ljava/lang/Integer;)V
