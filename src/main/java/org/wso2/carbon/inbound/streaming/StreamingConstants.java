@@ -173,6 +173,19 @@ public class StreamingConstants {
     public static final String STREAMING_CHECKPOINT_INTERVAL = "transport.vfs.StreamingCheckpointInterval";
     public static final int DEFAULT_STREAMING_CHECKPOINT_INTERVAL = 1000;
 
+    // ----- Parallel mediation -----
+    //
+    // Number of units (records in RECORD mode, chunks in CHUNK mode) mediated concurrently for one
+    // file. 1 (the default) mediates serially on the polling thread, exactly as before. Above 1, a
+    // per-file worker pool mediates up to this many units at once while the polling thread reads
+    // ahead; results are still committed (reply file, error sidecars, counters, checkpoint) one at a
+    // time and in file order, so ordering and checkpoint semantics are unchanged.
+    public static final String STREAMING_PARALLELISM = "transport.vfs.StreamingParallelism";
+    public static final int DEFAULT_STREAMING_PARALLELISM = 1;
+    // Units read ahead per worker: the window holds parallelism x this many uncommitted units, so
+    // workers keep going while the oldest unit is slow. Fixed; it only bounds memory.
+    public static final int STREAMING_WINDOW_PER_WORKER = 2;
+
     // Registry (governance) root under which per-inbound checkpoint files are stored:
     //   gov:/fileStreamingCheckpoints/{inboundName}/<fileKey>.json
     public static final String CHECKPOINT_REGISTRY_ROOT = "gov:/fileStreamingCheckpoints";

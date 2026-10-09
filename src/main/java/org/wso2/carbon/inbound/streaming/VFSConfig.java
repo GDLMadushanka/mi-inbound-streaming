@@ -124,6 +124,7 @@ public class VFSConfig {
     private char streamingCsvDelimiter;
     private boolean streamingCheckpointEnabled;
     private int streamingCheckpointInterval;
+    private int streamingParallelism;
     private String streamingFileCompleteSequence;
     private String streamingFileFailureSequence;
     private CsvDataTypes streamingCsvDataTypes;
@@ -223,6 +224,19 @@ public class VFSConfig {
         this.streamingCheckpointInterval = Integer.parseInt(
                 properties.getProperty(StreamingConstants.STREAMING_CHECKPOINT_INTERVAL,
                         String.valueOf(StreamingConstants.DEFAULT_STREAMING_CHECKPOINT_INTERVAL)));
+        this.streamingParallelism = parseStreamingParallelism(
+                properties.getProperty(StreamingConstants.STREAMING_PARALLELISM));
+        if (streamingCheckpointEnabled && streamingParallelism > 1
+                && streamingCheckpointInterval < streamingParallelism) {
+            // Not wrong, just not useful: the units in flight are replayed after a crash whatever
+            // the interval, so flushing more often than that only adds registry writes.
+            log.info(StreamingConstants.STREAMING_CHECKPOINT_INTERVAL + " ("
+                    + streamingCheckpointInterval + ") is below " + StreamingConstants.STREAMING_PARALLELISM
+                    + " (" + streamingParallelism + "). Up to "
+                    + streamingParallelism * StreamingConstants.STREAMING_WINDOW_PER_WORKER
+                    + " in-flight units are re-mediated after a crash regardless; a lower interval"
+                    + " only adds checkpoint writes.");
+        }
         this.streamingFileCompleteSequence =
                 properties.getProperty(StreamingConstants.STREAMING_FILE_COMPLETE_SEQUENCE);
         this.streamingFileFailureSequence =
@@ -631,6 +645,28 @@ public class VFSConfig {
      */
     public int getStreamingCheckpointInterval() {
         return streamingCheckpointInterval;
+    }
+
+    public int getStreamingParallelism() {
+        return streamingParallelism;
+    }
+
+    /** Parse transport.vfs.StreamingParallelism, falling back to serial (1) on a bad value. */
+    private static int parseStreamingParallelism(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return StreamingConstants.DEFAULT_STREAMING_PARALLELISM;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            if (parsed >= 1) {
+                return parsed;
+            }
+        } catch (NumberFormatException ignored) {
+            // reported below
+        }
+        log.warn("Invalid " + StreamingConstants.STREAMING_PARALLELISM + " value '" + value
+                + "'; it must be a positive integer. Mediating serially (1).");
+        return StreamingConstants.DEFAULT_STREAMING_PARALLELISM;
     }
 
     /**

@@ -413,6 +413,32 @@
           {
             "type": "attribute",
             "value": {
+              "name": "transport.vfs.StreamingParallelism",
+              "displayName": "Streaming Parallelism",
+              "inputType": "string",
+              "defaultValue": "1",
+              "required": "false",
+              "helpTip": "How many records (RECORD mode) or chunks (CHUNK mode) of a file are mediated concurrently. 1 mediates one at a time. Higher values help when the sequence waits on a backend; the reply file, error files and checkpoint stay in file order. The sequence must complete within the injection (use blocking calls), and up to 2x this many units may be re-mediated after a crash.",
+              "enableCondition": [
+                "AND",
+                {
+                  "transport.vfs.Streaming": true
+                },
+                [
+                  "OR",
+                  {
+                    "transport.vfs.StreamingMode": "CHUNK"
+                  },
+                  {
+                    "transport.vfs.StreamingMode": "RECORD"
+                  }
+                ]
+              ]
+            }
+          },
+          {
+            "type": "attribute",
+            "value": {
               "name": "transport.vfs.StreamingOutputProperty",
               "displayName": "Streaming Output Property",
               "inputType": "string",

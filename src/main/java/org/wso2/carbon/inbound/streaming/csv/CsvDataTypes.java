@@ -27,10 +27,10 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -298,8 +298,9 @@ public final class CsvDataTypes {
 
         private final Map<Integer, DataType> typesByIndex;
         // Columns already warned about, so one unconvertible column cannot flood the log with one
-        // line per row of a large file.
-        private final Set<Integer> warned = new HashSet<>();
+        // line per row of a large file. Concurrent: with StreamingParallelism above 1 a file's
+        // chunks are converted on several workers at once.
+        private final Set<Integer> warned = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
         private Converter(Map<Integer, DataType> typesByIndex) {
             this.typesByIndex = typesByIndex;
@@ -321,14 +322,31 @@ public final class CsvDataTypes {
          * @return the JSON primitive to put in the output
          */
         public JsonPrimitive convert(int columnIndex, String value) {
+            Object converted = convertValue(columnIndex, value);
+            if (converted instanceof Number) {
+                return new JsonPrimitive((Number) converted);
+            }
+            if (converted instanceof Boolean) {
+                return new JsonPrimitive((Boolean) converted);
+            }
+            return new JsonPrimitive((String) converted);
+        }
+
+        /**
+         * {@link #convert} without the JsonPrimitive wrapper, for writers that stream the JSON out
+         * directly. Thread-safe.
+         *
+         * @return a String, a Long, a BigDecimal or a Boolean
+         */
+        public Object convertValue(int columnIndex, String value) {
             DataType type = typesByIndex.get(columnIndex);
             if (type == null || type == DataType.STRING || value == null) {
-                return new JsonPrimitive(value == null ? "" : value);
+                return value == null ? "" : value;
             }
             // An empty cell carries no value to convert; keep the inbound's existing output for
             // blanks rather than inventing a zero or a null.
             if (value.trim().isEmpty()) {
-                return new JsonPrimitive(value);
+                return value;
             }
 
             String text = value.trim();
@@ -337,27 +355,27 @@ public final class CsvDataTypes {
                     case INTEGER:
                         // parseLong, not parseInt: CSV ids and account numbers routinely exceed
                         // the 32-bit range, and JSON has no int/long distinction anyway.
-                        return new JsonPrimitive(Long.valueOf(Long.parseLong(text)));
+                        return Long.valueOf(Long.parseLong(text));
                     case NUMBER:
                         // BigDecimal, not double: it keeps the value and the scale exactly as
                         // written, so a monetary "120.50" stays 120.50 rather than becoming 120.5.
-                        return new JsonPrimitive(new BigDecimal(text));
+                        return new BigDecimal(text);
                     case BOOLEAN:
                         // Not Boolean.parseBoolean: that silently turns every unrecognised value
                         // into false, which would quietly corrupt a column holding y/n or 1/0.
                         if ("true".equalsIgnoreCase(text)) {
-                            return new JsonPrimitive(Boolean.TRUE);
+                            return Boolean.TRUE;
                         }
                         if ("false".equalsIgnoreCase(text)) {
-                            return new JsonPrimitive(Boolean.FALSE);
+                            return Boolean.FALSE;
                         }
                         throw new NumberFormatException("not a boolean: " + text);
                     default:
-                        return new JsonPrimitive(value);
+                        return value;
                 }
             } catch (NumberFormatException | ArithmeticException e) {
                 warnOnce(columnIndex, type, value);
-                return new JsonPrimitive(value);
+                return value;
             }
         }
 

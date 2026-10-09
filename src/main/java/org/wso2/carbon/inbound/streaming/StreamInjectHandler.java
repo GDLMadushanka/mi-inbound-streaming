@@ -61,6 +61,11 @@ import java.util.List;
  * configured action-after-failure (move to fault folder / delete) to the whole file.
  * <p>
  * A non-recoverable {@link StreamingException} (structural/IO error) also fails the whole file.
+ * <p>
+ * With {@code transport.vfs.StreamingParallelism} above 1, up to that many units are mediated at
+ * once on a per-file worker pool (see {@link OrderedWindow}). Reading, parsing and every commit -
+ * counters, error sidecars, the reply file and the checkpoint - stay on the polling thread and in
+ * file order, so the output and the resume point are the same as a serial run.
  */
 public class StreamInjectHandler extends AbstractInjectHandler {
 
@@ -76,7 +81,8 @@ public class StreamInjectHandler extends AbstractInjectHandler {
         FileSystemManager fsManager) {
         // Streaming always injects sequentially. Per-record/per-chunk mediation errors can only be
         // detected synchronously - the ERROR_CODE transport header is set while the sequence runs -
-        // which requires injectInbound to mediate inline rather than hand off asynchronously.
+        // which requires injectInbound to mediate inline rather than hand off asynchronously. With
+        // StreamingParallelism > 1 "inline" means on one of this file's worker threads.
         super(injectingSeq, onErrorSeq, true, synapseEnvironment, vfsProperties);
         this.fsManager = fsManager;
     }
@@ -123,17 +129,24 @@ public class StreamInjectHandler extends AbstractInjectHandler {
             }
         }
         long resumedFrom = startFromRecord;
-        int interval = vfsProperties.getStreamingCheckpointInterval();
-        long lastConsumed = startFromRecord;
-        // Absolute chunk number of the last chunk delivered, so a resume keeps counting.
-        long lastChunk = startFromChunk;
+        Progress progress = new Progress(checkpoints, failed, startFromRecord, startFromChunk);
         boolean cancelled = false;
+
+        // Units are read and prepared here, mediated by up to `parallelism` workers (inline when
+        // 1), and committed back on this thread in file order - see OrderedWindow.
+        int parallelism = vfsProperties.getStreamingParallelism();
+        if (parallelism > 1) {
+            log.info("Streaming " + file.getName().getBaseName() + " with parallelism "
+                + parallelism + " (up to " + parallelism * StreamingConstants.STREAMING_WINDOW_PER_WORKER
+                + " " + (chunkMode ? "chunks" : "records") + " in flight).");
+        }
+        OrderedWindow<Mediated> window = new OrderedWindow<>(parallelism,
+            parallelism * StreamingConstants.STREAMING_WINDOW_PER_WORKER, "StreamingWorker-" + name);
 
         try (InputStream in = file.getContent().getInputStream()) {
             if (chunkMode) {
                 Iterator<StreamChunk> iterator = processor.getChunkIterator(in, contentType,
                     vfsProperties.getStreamingChunkSize(), startFromRecord, startFromChunk);
-                int unitsSinceFlush = 0;
                 while (iterator.hasNext()) {
                     // Stop cleanly on server shutdown, at a chunk boundary.
                     if (vfsProperties.isCanceled()) {
@@ -141,18 +154,17 @@ public class StreamInjectHandler extends AbstractInjectHandler {
                         break;
                     }
                     try {
-                        StreamChunk chunk = iterator.next();
-                        handleChunk(name, contentType, chunk, addOutputToProperty, failed, processor);
-                        lastConsumed = chunk.getLastRecordNumber();
-                        lastChunk = chunk.getChunkNumber();
-                        if (checkpoints != null && ++unitsSinceFlush >= interval) {
-                            saveCheckpoint(checkpoints, lastConsumed, lastChunk, failed);
-                            unitsSinceFlush = 0;
-                        }
+                        submitChunk(window, name, contentType, iterator.next(),
+                            addOutputToProperty, failed, processor, progress);
                     } catch (StreamingException ex) {
                         if (vfsProperties.isCanceled()) {
                             cancelled = true;
                             break;
+                        }
+                        if (!ex.isRecoverable()) {
+                            // Commit everything before the unparseable point, as the serial loop
+                            // would have, before the file is failed.
+                            drainQuietly(window, file);
                         }
                         if (!handleStreamingException(ex, file, failed, "chunk")) {
                             failed.fileFailed();
@@ -165,7 +177,6 @@ public class StreamInjectHandler extends AbstractInjectHandler {
             } else {
                 Iterator<StreamRecord> iterator = processor.getRecordIterator(in, contentType,
                     startFromRecord);
-                int unitsSinceFlush = 0;
                 while (iterator.hasNext()) {
                     // Stop cleanly on server shutdown, at a record boundary.
                     if (vfsProperties.isCanceled()) {
@@ -173,17 +184,15 @@ public class StreamInjectHandler extends AbstractInjectHandler {
                         break;
                     }
                     try {
-                        StreamRecord record = iterator.next();
-                        handleRecord(name, contentType, record, addOutputToProperty, failed);
-                        lastConsumed = record.getRecordNumber();
-                        if (checkpoints != null && ++unitsSinceFlush >= interval) {
-                            saveCheckpoint(checkpoints, lastConsumed, lastChunk, failed);
-                            unitsSinceFlush = 0;
-                        }
+                        submitRecord(window, name, contentType, iterator.next(),
+                            addOutputToProperty, failed, progress);
                     } catch (StreamingException ex) {
                         if (vfsProperties.isCanceled()) {
                             cancelled = true;
                             break;
+                        }
+                        if (!ex.isRecoverable()) {
+                            drainQuietly(window, file);
                         }
                         if (!handleStreamingException(ex, file, failed, "record")) {
                             failed.fileFailed();
@@ -194,7 +203,19 @@ public class StreamInjectHandler extends AbstractInjectHandler {
                     }
                 }
             }
+            // End of file, or stopping for shutdown: every unit already read is mediated and
+            // committed before the outcome is decided, so the checkpoint and the completion
+            // callback both see the whole of it.
+            window.drain();
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                // Interrupted while waiting on a worker: commit nothing further. Whatever was not
+                // committed is not checkpointed either, so a resume re-reads it.
+                Thread.currentThread().interrupt();
+            } else {
+                // The units already read do not depend on the input stream; let them finish.
+                drainQuietly(window, file);
+            }
             if (vfsProperties.isCanceled()) {
                 // Shutdown race: the read failed because the file system manager was closed
                 // mid-stream. Treat it as a graceful stop, not a file failure.
@@ -208,12 +229,14 @@ public class StreamInjectHandler extends AbstractInjectHandler {
                 return false;
             }
         } finally {
+            window.close();
             failed.close();
             closeReplyWriter(file);
         }
 
         if (cancelled) {
-            return finishOnShutdown(file, checkpoints, lastConsumed, lastChunk, failed);
+            return finishOnShutdown(file, checkpoints, progress.lastConsumed, progress.lastChunk,
+                failed);
         }
 
         // Success: the file has been fully consumed, so the checkpoint is no longer needed.
@@ -408,36 +431,47 @@ public class StreamInjectHandler extends AbstractInjectHandler {
     }
 
     /**
-     * Process a single record: siphon it if invalid, otherwise inject it.
-     *
-     * @return false if the whole file must be treated as a complete failure
+     * Submit a single record: an invalid one is siphoned at its commit, a valid one is mediated.
+     * Everything that touches shared state (counters, sidecars, reply file, checkpoint) happens in
+     * the commit, on this thread and in file order; only the mediation itself may run on a worker.
      */
-    private boolean handleRecord(String name, String contentType, StreamRecord record,
-        boolean addOutputToProperty, FailedRecordCollector failed) throws Exception {
+    private void submitRecord(OrderedWindow<Mediated> window, String name, String contentType,
+                              StreamRecord record, boolean addOutputToProperty,
+                              FailedRecordCollector failed, Progress progress)
+        throws InterruptedException {
+        long recordNumber = record.getRecordNumber();
         if (!record.isValid()) {
-            failed.parseFailure(record);
-            return true;
+            window.submit(null, (result, error) -> {
+                failed.parseFailure(record);
+                progress.consumed(recordNumber, null);
+            });
+            return;
         }
         byte[] body = addOutputToProperty ? null : record.getContent();
-        if (tryInject(name, contentType, body, payloadText(record.getJSONPayload()),
-                StreamPosition.ofRecord(record), "record " + record.getRecordNumber())) {
-            failed.recordProcessed(1);
-        } else {
-            // Mediation failed: apply the mediation-error action to this record's content (raw
-            // content, or its payload in property-output mode).
-            log.warn("Record " + record.getRecordNumber() + " failed mediation; "
-                + failed.mediationActionLabel() + " the record.");
-            byte[] failBytes = addOutputToProperty
-                    ? payloadBytes(record.getJSONPayload(), record.getEncoding())
-                    : record.getContent();
-            failed.mediationFailure(failBytes, 1);
-        }
-        return true;
+        String what = "record " + recordNumber;
+        window.submit(
+            () -> mediate(name, contentType, body, payloadText(record.getJSONPayload()),
+                StreamPosition.ofRecord(record)),
+            (result, error) -> {
+                if (committed(result, error, what)) {
+                    failed.recordProcessed(1);
+                } else {
+                    // Mediation failed: apply the mediation-error action to this record's content
+                    // (raw content, or its payload in property-output mode).
+                    log.warn("Record " + recordNumber + " failed mediation; "
+                        + failed.mediationActionLabel() + " the record.");
+                    byte[] failBytes = addOutputToProperty
+                            ? payloadBytes(record.getJSONPayload(), record.getEncoding())
+                            : record.getContent();
+                    failed.mediationFailure(failBytes, 1);
+                }
+                progress.consumed(recordNumber, null);
+            });
     }
 
     /**
-     * Process a single chunk: apply the parse-error action to its invalid records, then inject the
-     * valid ones as one batch.
+     * Submit a single chunk: its invalid records get the parse-error action, and the valid ones are
+     * mediated as one batch. Both are applied at the chunk's commit, in file order.
      * <p>
      * If the batch fails mediation we do <em>not</em> retry it record-by-record: in chunk mode the
      * sequence is written against the batch shape (e.g. expressions over the JSON array), so a lone
@@ -445,39 +479,50 @@ public class StreamInjectHandler extends AbstractInjectHandler {
      * action in the same shape it was sent (a JSON array for JSON/JSONL, newline-joined lines for
      * text/CSV).
      */
-    private boolean handleChunk(String name, String contentType, StreamChunk chunk,
-        boolean addOutputToProperty, FailedRecordCollector failed,
-        StreamingProcessor processor) throws Exception {
+    private void submitChunk(OrderedWindow<Mediated> window, String name, String contentType,
+                             StreamChunk chunk, boolean addOutputToProperty,
+                             FailedRecordCollector failed, StreamingProcessor processor,
+                             Progress progress) throws InterruptedException {
         List<StreamRecord> validRecords = new ArrayList<>();
+        List<StreamRecord> invalidRecords = new ArrayList<>();
         for (StreamRecord record : chunk.getRecords()) {
-            if (record.isValid()) {
-                validRecords.add(record);
-            } else {
-                failed.parseFailure(record);
-            }
+            (record.isValid() ? validRecords : invalidRecords).add(record);
         }
-        // Nothing left to inject once the invalid records have been handled.
+        long lastRecord = chunk.getLastRecordNumber();
+        long chunkNumber = chunk.getChunkNumber();
+        // Nothing to mediate once the invalid records are set aside; still commit in order.
         if (validRecords.isEmpty()) {
-            return true;
+            window.submit(null, (result, error) -> {
+                invalidRecords.forEach(failed::parseFailure);
+                progress.consumed(lastRecord, chunkNumber);
+            });
+            return;
         }
 
-        // The processor knows how to combine its own records (newline-joined text, JSON array, ...).
+        // The processor knows how to combine its own records (newline-joined text, JSON array,
+        // ...). Built here, not on a worker: processors are not required to be thread-safe.
         byte[] body = addOutputToProperty ? null : processor.buildChunkBody(chunk);
-        if (tryInject(name, contentType, body, payloadText(chunk.getJSONPayload()),
-                StreamPosition.ofChunk(chunk, validRecords.size()),
-                describe(validRecords) + " (chunk " + chunk.getChunkNumber() + ")")) {
-            failed.recordProcessed(validRecords.size());
-        } else {
-            // The chunk failed mediation as a unit; hand the whole chunk (in the shape it was sent)
-            // to the mediation-error action.
-            log.warn("Chunk " + chunk.getChunkNumber() + " failed mediation; "
-                + failed.mediationActionLabel() + " its " + validRecords.size() + " record(s).");
-            byte[] failBytes = addOutputToProperty
-                    ? payloadBytes(chunk.getJSONPayload(), chunk.getEncoding())
-                    : body;
-            failed.mediationFailure(failBytes, validRecords.size());
-        }
-        return true;
+        String what = describe(validRecords) + " (chunk " + chunkNumber + ")";
+        window.submit(
+            () -> mediate(name, contentType, body, chunk.getPayloadText(),
+                StreamPosition.ofChunk(chunk, validRecords.size())),
+            (result, error) -> {
+                invalidRecords.forEach(failed::parseFailure);
+                if (committed(result, error, what)) {
+                    failed.recordProcessed(validRecords.size());
+                } else {
+                    // The chunk failed mediation as a unit; hand the whole chunk (in the shape it
+                    // was sent) to the mediation-error action.
+                    log.warn("Chunk " + chunkNumber + " failed mediation; "
+                        + failed.mediationActionLabel() + " its " + validRecords.size()
+                        + " record(s).");
+                    byte[] failBytes = addOutputToProperty
+                            ? textBytes(chunk.getPayloadText(), chunk.getEncoding())
+                            : body;
+                    failed.mediationFailure(failBytes, validRecords.size());
+                }
+                progress.consumed(lastRecord, chunkNumber);
+            });
     }
 
     /**
@@ -493,6 +538,11 @@ public class StreamInjectHandler extends AbstractInjectHandler {
     /** Serialize a JSON payload to bytes, or null if there is no payload. */
     private static byte[] payloadBytes(JsonElement payload, Charset charset) {
         return payload != null ? payload.toString().getBytes(charset) : null;
+    }
+
+    /** Encode payload text to bytes, or null if there is no payload. */
+    private static byte[] textBytes(String text, Charset charset) {
+        return text != null ? text.getBytes(charset) : null;
     }
 
     /**
@@ -525,10 +575,11 @@ public class StreamInjectHandler extends AbstractInjectHandler {
      * Create a message context for a single chunk/record and inject it to the sequence. When
      * {@code body} is non-null it becomes the message payload; when {@code propertyOutput} is
      * non-null it is exposed as a message-context property and the body is left empty.
-     *
-     * @return true if the injection completed without an error code
+     * <p>
+     * May run on a worker thread: it touches nothing shared, and leaves the reply-file append to
+     * the commit so results land in file order.
      */
-    private boolean injectStreamingMessage(String name, String contentType, byte[] body,
+    private Mediated mediate(String name, String contentType, byte[] body,
         String propertyOutput, StreamPosition position) throws Exception {
         org.apache.synapse.MessageContext msgCtx = createMessageContext();
         seedInboundProperties(msgCtx, name);
@@ -551,13 +602,104 @@ public class StreamInjectHandler extends AbstractInjectHandler {
             }
             msgCtx.setEnvelope(TransportUtils.createSOAPEnvelope(documentElement));
         }
-        boolean mediated = injectToSequence(name, msgCtx, axis2MsgCtx);
-        if (mediated && replyWriter != null) {
+        return new Mediated(injectToSequence(name, msgCtx, axis2MsgCtx), axis2MsgCtx);
+    }
+
+    /**
+     * Commit-side half of a mediation: report whether the unit succeeded and, if so, append its
+     * result to the reply file. A mediation failure is the injection returning an error code or
+     * throwing; unlike a parse failure the data itself is fine (the downstream sequence failed).
+     * The caller decides what to siphon.
+     *
+     * @param what a short description of the unit, for logging
+     * @return true if mediation succeeded, false on a mediation failure
+     */
+    private boolean committed(Mediated result, Throwable error, String what) {
+        if (error instanceof Error) {
+            // Not a mediation failure (e.g. out of memory): do not siphon the unit, fail loudly.
+            throw (Error) error;
+        }
+        if (error != null) {
+            log.warn("Mediation error while injecting " + what + ".", error);
+            return false;
+        }
+        if (!result.succeeded) {
+            log.warn("Mediation reported an error for " + what + ".");
+            return false;
+        }
+        if (replyWriter != null) {
             // Only successful results reach the reply file; a failed record is siphoned to the
             // mediation-error sidecar instead, so it never appears in both.
-            replyWriter.append(axis2MsgCtx);
+            replyWriter.append(result.axis2MsgCtx);
         }
-        return mediated;
+        return true;
+    }
+
+    /** The outcome of mediating one unit, carried from its worker to its commit. */
+    private static final class Mediated {
+
+        private final boolean succeeded;
+        // Held until the commit, which appends it to the reply file in file order.
+        private final MessageContext axis2MsgCtx;
+
+        private Mediated(boolean succeeded, MessageContext axis2MsgCtx) {
+            this.succeeded = succeeded;
+            this.axis2MsgCtx = axis2MsgCtx;
+        }
+    }
+
+    /**
+     * How far into the file the commits have reached, and the checkpoint flushing that follows them.
+     * Only ever touched from commits, so on the streaming thread.
+     */
+    private final class Progress {
+
+        private final StreamingCheckpointManager checkpoints;
+        private final FailedRecordCollector failed;
+        private final int interval = vfsProperties.getStreamingCheckpointInterval();
+        private long lastConsumed;
+        // Absolute chunk number of the last chunk delivered, so a resume keeps counting.
+        private long lastChunk;
+        private int unitsSinceFlush;
+
+        private Progress(StreamingCheckpointManager checkpoints, FailedRecordCollector failed,
+                         long startFromRecord, long startFromChunk) {
+            this.checkpoints = checkpoints;
+            this.failed = failed;
+            this.lastConsumed = startFromRecord;
+            this.lastChunk = startFromChunk;
+        }
+
+        /**
+         * One unit committed. Commits are contiguous, so every record up to {@code lastRecord} is
+         * done and it is a safe resume point.
+         *
+         * @param chunkNumber the unit's chunk number in CHUNK mode, null in RECORD mode
+         */
+        void consumed(long lastRecord, Long chunkNumber) {
+            lastConsumed = lastRecord;
+            if (chunkNumber != null) {
+                lastChunk = chunkNumber;
+            }
+            if (checkpoints != null && ++unitsSinceFlush >= interval) {
+                saveCheckpoint(checkpoints, lastConsumed, lastChunk, failed);
+                unitsSinceFlush = 0;
+            }
+        }
+    }
+
+    /**
+     * Commit every outstanding unit on a path that is about to end the file anyway. Interruption
+     * stops it early; the uncommitted units are then simply not checkpointed.
+     */
+    private void drainQuietly(OrderedWindow<Mediated> window, FileObject file) {
+        try {
+            window.drain();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while finishing in-flight units of " + file.getName().getBaseName()
+                + "; " + window.outstanding() + " unit(s) were left uncommitted.");
+        }
     }
 
     /**
@@ -583,29 +725,6 @@ public class StreamInjectHandler extends AbstractInjectHandler {
         }
         replyWriter.close();
         replyWriter = null;
-    }
-
-    /**
-     * Attempt to inject one message (a single record, or a chunk batch). A mediation failure is the
-     * injection returning an error code or throwing; unlike a parse failure the data itself is fine
-     * (the downstream sequence failed). This method only reports success/failure - the caller
-     * decides what to siphon - so a failed chunk can be retried record-by-record.
-     *
-     * @param what a short description of the unit, for logging
-     * @return true if mediation succeeded, false on a mediation failure
-     */
-    private boolean tryInject(String name, String contentType, byte[] body,
-                              String propertyOutput, StreamPosition position, String what) {
-        try {
-            if (injectStreamingMessage(name, contentType, body, propertyOutput, position)) {
-                return true;
-            }
-            log.warn("Mediation reported an error for " + what + ".");
-            return false;
-        } catch (Exception e) {
-            log.warn("Mediation error while injecting " + what + ".", e);
-            return false;
-        }
     }
 
     private static String describe(List<StreamRecord> records) {

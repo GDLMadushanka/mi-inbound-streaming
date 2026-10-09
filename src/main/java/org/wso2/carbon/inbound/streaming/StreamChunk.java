@@ -19,12 +19,32 @@
 package org.wso2.carbon.inbound.streaming;
 
 import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class StreamChunk {
+
+    /**
+     * A chunk payload that is built on demand rather than by the reading thread. With
+     * {@code StreamingParallelism} above 1 that demand comes from a worker, so per-row conversion
+     * runs in parallel instead of on the single thread that reads the file.
+     * <p>
+     * Both methods must produce the same JSON, and must be safe to call from any thread.
+     */
+    public interface DeferredPayload {
+
+        /** Build the payload as a Gson tree. */
+        JsonElement buildTree();
+
+        /** Write the payload straight to {@code out}, as {@code buildTree().toString()} would. */
+        void writeTo(JsonWriter out) throws IOException;
+    }
 
     // Multiple rows representation (for chunk mode with chunkSize > 1)
     private java.util.List<StreamRecord> records;
@@ -35,6 +55,8 @@ public class StreamChunk {
 
     // Metadata
     private JsonElement JSONPayload;
+    // Set instead of JSONPayload when the payload is built on demand (see DeferredPayload).
+    private DeferredPayload deferredPayload;
     private boolean isLastChunk;
     private boolean isValid = true;
     private String parseError;
@@ -56,8 +78,44 @@ public class StreamChunk {
         this.chunkNumber = chunkNumber;
     }
 
+    /**
+     * The payload as a Gson tree. A deferred payload is built (and kept) on first call; callers
+     * that only need the JSON text should use {@link #getPayloadText()}, which avoids the tree.
+     */
     public JsonElement getJSONPayload() {
+        if (JSONPayload == null && deferredPayload != null) {
+            JSONPayload = deferredPayload.buildTree();
+        }
         return JSONPayload;
+    }
+
+    /**
+     * The payload as JSON text, or null if there is none. A deferred payload is written directly
+     * to text without building a tree first, and is not kept.
+     */
+    public String getPayloadText() {
+        if (JSONPayload != null) {
+            return JSONPayload.toString();
+        }
+        if (deferredPayload == null) {
+            return null;
+        }
+        StringWriter text = new StringWriter();
+        try {
+            JsonWriter out = new JsonWriter(text);
+            // Lenient, like JsonElement.toString(), so the two paths emit identical text.
+            out.setLenient(true);
+            deferredPayload.writeTo(out);
+            out.flush();
+        } catch (IOException e) {
+            // A StringWriter does not fail; this is only reachable through a broken builder.
+            throw new UncheckedIOException(e);
+        }
+        return text.toString();
+    }
+
+    public void setDeferredPayload(DeferredPayload payload) {
+        this.deferredPayload = payload;
     }
 
     public boolean isLastChunk() {

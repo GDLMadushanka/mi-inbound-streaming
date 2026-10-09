@@ -26,7 +26,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -168,6 +172,8 @@ public class CSVStreamingProcessor extends ChunkedDataProcessor {
 
         private final Iterator<CSVRecord> csvIterator;
         private String[] headers;
+        // Whether the header row repeats a name; decides how a deferred chunk payload is written.
+        private boolean duplicateHeaders;
         // Column rules resolved against this file's header row, once, in the constructor.
         private CsvDataTypes.Converter converter;
         private long recordCount = 0;
@@ -195,6 +201,8 @@ public class CSVStreamingProcessor extends ChunkedDataProcessor {
                     }
                 }
                 this.converter = dataTypes.resolve(this.headers);
+                this.duplicateHeaders = headers != null
+                    && new HashSet<>(Arrays.asList(headers)).size() < headers.length;
 
                 // Try to read first record
                 advanceToNextRecord();
@@ -250,10 +258,16 @@ public class CSVStreamingProcessor extends ChunkedDataProcessor {
             chunk.setChunkNumber(chunkNumber);
             chunk.setEncoding(charset);
 
-            JsonArray resultsArray = null;
+            // Property-output mode: keep only the tokenized cells here. Converting them and
+            // building the JSON is deferred to whoever asks for the payload (a worker, when the
+            // file is mediated in parallel), which keeps this - the one thread reading the file -
+            // down to tokenizing.
+            List<String[]> rows = null;
             if (addOutputToProperty) {
-                resultsArray = new JsonArray();
-                chunk.setJSONPayload(resultsArray);
+                rows = new ArrayList<>(chunkSize);
+                chunk.setDeferredPayload(new CsvChunkPayload(headers, rows, converter,
+                    addHeadersToEachResult && headers != null && headers.length > 0,
+                    duplicateHeaders));
             } else {
                 // adding header as first record in the chunk if configured to do so
                 if (addHeadersToEachResult && headers != null && headers.length > 0) {
@@ -275,19 +289,7 @@ public class CSVStreamingProcessor extends ChunkedDataProcessor {
                 streamRecord.setValid(true);
 
                 if (addOutputToProperty) {
-                    if (addHeadersToEachResult && headers != null && headers.length > 0) {
-                        JsonObject jsonObject = new JsonObject();
-                        for (int i = 0; i < headers.length && i < record.size(); i++) {
-                            jsonObject.add(headers[i], converter.convert(i, record.get(i)));
-                        }
-                        resultsArray.add(jsonObject);
-                    } else {
-                        JsonArray jsonArray = new JsonArray();
-                        for (int i = 0; i < record.size(); i++) {
-                            jsonArray.add(converter.convert(i, record.get(i)));
-                        }
-                        resultsArray.add(jsonArray);
-                    }
+                    rows.add(record.values());
                 } else {
                     String recordContent = buildRecordContent(record);
                     streamRecord.setContent(recordContent.getBytes(charset));
