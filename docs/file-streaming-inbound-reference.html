@@ -408,6 +408,8 @@ footer { margin-top: 16pt; padding-top: 6pt; border-top: .7pt solid #ccc; font-s
   <tbody>
     <tr><td class="p">StreamingCheckpointEnabled</td><td class="d">true</td><td>Whether a resume point is written at all.</td></tr>
     <tr><td class="p">StreamingCheckpointInterval</td><td class="d">1000</td><td>Units between writes — <b>chunks</b> in CHUNK mode, <b>records</b> in RECORD mode. With <code>ChunkSize=2000</code>, an interval of 50 is a resume point every 100,000 rows.</td></tr>
+    <tr><td class="p">StreamingReadRetries</td><td class="d">3</td><td>Consecutive read failures without progress tolerated when the connection drops mid-file (SFTP <code>Pipe closed</code>, connection reset). Each time the file is opened again over a new connection, the bytes already read are skipped and reading carries on at exactly that byte: no record is repeated or lost, and the checkpoint is untouched. A stream that ends before the file's original size counts as a drop too. <code>0</code> turns it off: the first failure fails the file, as before.</td></tr>
+    <tr><td class="p">StreamingReadRetryDelay</td><td class="d">5000</td><td>Pause before a read retry in milliseconds, multiplied by the failure count (5 s, then 10 s, then 15 s with the default).</td></tr>
   </tbody>
 </table>
 <p>Only CHUNK and RECORD checkpoint. <code>ENTIRE_FILE</code> is a single message, so there is no position to record.</p>

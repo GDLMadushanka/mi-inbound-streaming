@@ -173,6 +173,14 @@ public class StreamingConstants {
     public static final String STREAMING_CHECKPOINT_INTERVAL = "transport.vfs.StreamingCheckpointInterval";
     public static final int DEFAULT_STREAMING_CHECKPOINT_INTERVAL = 1000;
 
+    // Reading survives a dropped connection (SFTP "Pipe closed", connection reset): the file is opened again and the read
+    // resumes at the byte where it stopped. Consecutive failures without progress tolerated; 0 turns it off.
+    public static final String STREAMING_READ_RETRIES = "transport.vfs.StreamingReadRetries";
+    public static final int DEFAULT_STREAMING_READ_RETRIES = 3;
+    // Pause before a retry in milliseconds, multiplied by the failure count.
+    public static final String STREAMING_READ_RETRY_DELAY = "transport.vfs.StreamingReadRetryDelay";
+    public static final long DEFAULT_STREAMING_READ_RETRY_DELAY = 5000L;
+
     // ----- Parallel mediation -----
     //
     // Number of units (records in RECORD mode, chunks in CHUNK mode) mediated concurrently for one

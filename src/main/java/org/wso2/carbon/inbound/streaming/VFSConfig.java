@@ -124,6 +124,8 @@ public class VFSConfig {
     private char streamingCsvDelimiter;
     private boolean streamingCheckpointEnabled;
     private int streamingCheckpointInterval;
+    private int streamingReadRetries;
+    private long streamingReadRetryDelay;
     private int streamingParallelism;
     private String streamingFileCompleteSequence;
     private String streamingFileFailureSequence;
@@ -224,6 +226,10 @@ public class VFSConfig {
         this.streamingCheckpointInterval = Integer.parseInt(
                 properties.getProperty(StreamingConstants.STREAMING_CHECKPOINT_INTERVAL,
                         String.valueOf(StreamingConstants.DEFAULT_STREAMING_CHECKPOINT_INTERVAL)));
+        this.streamingReadRetries = (int) parseNonNegative(properties.getProperty(StreamingConstants.STREAMING_READ_RETRIES),
+                StreamingConstants.DEFAULT_STREAMING_READ_RETRIES, StreamingConstants.STREAMING_READ_RETRIES);
+        this.streamingReadRetryDelay = parseNonNegative(properties.getProperty(StreamingConstants.STREAMING_READ_RETRY_DELAY),
+                StreamingConstants.DEFAULT_STREAMING_READ_RETRY_DELAY, StreamingConstants.STREAMING_READ_RETRY_DELAY);
         this.streamingParallelism = parseStreamingParallelism(
                 properties.getProperty(StreamingConstants.STREAMING_PARALLELISM));
         if (streamingCheckpointEnabled && streamingParallelism > 1
@@ -645,6 +651,32 @@ public class VFSConfig {
      */
     public int getStreamingCheckpointInterval() {
         return streamingCheckpointInterval;
+    }
+
+    /** Consecutive failures without progress that reading tolerates (the file is reopened each time); 0 = off. */
+    public int getStreamingReadRetries() {
+        return streamingReadRetries;
+    }
+
+    /** Pause before a read retry in milliseconds (multiplied by the failure count). */
+    public long getStreamingReadRetryDelay() {
+        return streamingReadRetryDelay;
+    }
+
+    private static long parseNonNegative(String value, long fallback, String name) {
+        if (value == null || value.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            long v = Long.parseLong(value.trim());
+            if (v >= 0) {
+                return v;
+            }
+        } catch (NumberFormatException ignore) {
+            // handled below
+        }
+        log.warn(name + " must be a number of zero or more; got '" + value + "'. Using " + fallback + ".");
+        return fallback;
     }
 
     public int getStreamingParallelism() {
