@@ -42,6 +42,7 @@ import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemManager;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -143,7 +144,7 @@ public class StreamInjectHandler extends AbstractInjectHandler {
         OrderedWindow<Mediated> window = new OrderedWindow<>(parallelism,
             parallelism * StreamingConstants.STREAMING_WINDOW_PER_WORKER, "StreamingWorker-" + name);
 
-        try (InputStream in = file.getContent().getInputStream()) {
+        try (InputStream in = openResumable(file)) {
             if (chunkMode) {
                 Iterator<StreamChunk> iterator = processor.getChunkIterator(in, contentType,
                     vfsProperties.getStreamingChunkSize(), startFromRecord, startFromChunk);
@@ -249,6 +250,28 @@ public class StreamInjectHandler extends AbstractInjectHandler {
             + (resumedFrom > 0 ? " (resumed from record " + resumedFrom + ")" : ""));
         onFileComplete(file, name, failed);
         return true;
+    }
+
+    /**
+     * The file's input stream, wrapped so that a dropped connection (SFTP "Pipe closed", connection reset) reopens the
+     * file and resumes at the byte where the read stopped instead of failing the whole file.
+     * See {@link ResumableInputStream}; the retry budget is {@code transport.vfs.StreamingReadRetries}.
+     */
+    private InputStream openResumable(final FileObject file) throws IOException {
+        long size = -1;
+        try {
+            size = file.getContent().getSize();
+        } catch (Exception e) {
+            // unknown size: the early-end check is simply off
+        }
+        return new ResumableInputStream(reopen -> {
+            if (reopen) {
+                // drop what the broken connection left behind; the next open connects again
+                file.close();
+            }
+            return file.getContent().getInputStream();
+        }, file.getName().getBaseName(), size, vfsProperties.getStreamingReadRetries(),
+            vfsProperties.getStreamingReadRetryDelay());
     }
 
     /**

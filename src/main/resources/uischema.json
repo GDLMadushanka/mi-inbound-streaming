@@ -906,6 +906,58 @@
                       ]
                     ]
                   }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingReadRetries",
+                    "displayName": "Read Retries",
+                    "inputType": "string",
+                    "defaultValue": "3",
+                    "required": "false",
+                    "helpTip": "Consecutive read failures without progress tolerated when the connection drops mid-file (SFTP 'Pipe closed', connection reset). Each time the file is opened again and the read resumes at the byte where it stopped; no record is repeated or lost. 0 turns this off: the first failure fails the file.",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ]
+                  }
+                },
+                {
+                  "type": "attribute",
+                  "value": {
+                    "name": "transport.vfs.StreamingReadRetryDelay",
+                    "displayName": "Read Retry Delay (ms)",
+                    "inputType": "string",
+                    "defaultValue": "5000",
+                    "required": "false",
+                    "helpTip": "Pause before a read retry in milliseconds, multiplied by the failure count (5000 waits 5 s, then 10 s, then 15 s).",
+                    "enableCondition": [
+                      "AND",
+                      {
+                        "transport.vfs.Streaming": true
+                      },
+                      [
+                        "OR",
+                        {
+                          "transport.vfs.StreamingMode": "CHUNK"
+                        },
+                        {
+                          "transport.vfs.StreamingMode": "RECORD"
+                        }
+                      ]
+                    ]
+                  }
                 }
               ]
             }
