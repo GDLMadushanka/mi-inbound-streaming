@@ -148,7 +148,7 @@ public class StreamingCheckpointManager {
         }
     }
 
-    /** Remove the checkpoint (and its backup). Called on successful completion or whole-file failure. */
+    /** Remove the checkpoint (and its backup). Called after the file has been moved, or on a whole-file failure. */
     public void clear() {
         safeDelete(path);
         safeDelete(path + BAK_SUFFIX);

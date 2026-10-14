@@ -76,6 +76,9 @@ public class StreamInjectHandler extends AbstractInjectHandler {
     // Reply file for the source file currently being streamed, or null when no reply file is
     // configured. Opened lazily on the first mediated result and closed when the file is done.
     private ReplyFileWriter replyWriter;
+    // Set only after a file is fully consumed. The checkpoint stays until the file has been
+    // moved out of the poll folder; VFSConsumer clears it through {@link #clearCheckpointAfterMove()}.
+    private StreamingCheckpointManager checkpointHeldForMove;
 
     public StreamInjectHandler(String injectingSeq, String onErrorSeq,
         SynapseEnvironment synapseEnvironment, VFSConfig vfsProperties,
@@ -240,8 +243,13 @@ public class StreamInjectHandler extends AbstractInjectHandler {
                 failed);
         }
 
-        // Success: the file has been fully consumed, so the checkpoint is no longer needed.
-        clearCheckpoints(checkpoints);
+        // The file is fully consumed. Write that position before the completion callback and
+        // leave the checkpoint in place until the file is moved (see clearCheckpointAfterMove).
+        // A crash in the gap used to find no checkpoint and reread every record. A restart now
+        // sees every record already consumed, reads nothing new, and runs the callback again.
+        if (checkpoints != null) {
+            saveCheckpoint(checkpoints, progress.lastConsumed, progress.lastChunk, failed);
+        }
         failed.fileCompleted();
         log.info("Streaming completed for " + file.getName().getBaseName()
             + ": processed=" + failed.getProcessedCount()
@@ -249,6 +257,7 @@ public class StreamInjectHandler extends AbstractInjectHandler {
             + ", mediationFailed=" + failed.getMediationFailedCount()
             + (resumedFrom > 0 ? " (resumed from record " + resumedFrom + ")" : ""));
         onFileComplete(file, name, failed);
+        checkpointHeldForMove = checkpoints;
         return true;
     }
 
@@ -272,6 +281,15 @@ public class StreamInjectHandler extends AbstractInjectHandler {
             return file.getContent().getInputStream();
         }, file.getName().getBaseName(), size, vfsProperties.getStreamingReadRetries(),
             vfsProperties.getStreamingReadRetryDelay());
+    }
+
+    /**
+     * Drop the checkpoint kept across the completion callback. Called only after the file has been
+     * moved out of the poll folder, so a crash during the callback or the move can still resume.
+     */
+    public void clearCheckpointAfterMove() {
+        clearCheckpoints(checkpointHeldForMove);
+        checkpointHeldForMove = null;
     }
 
     /**
