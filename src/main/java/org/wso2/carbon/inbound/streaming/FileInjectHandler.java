@@ -60,6 +60,9 @@ public class FileInjectHandler extends AbstractInjectHandler {
     private static final Log log = LogFactory.getLog(FileInjectHandler.class);
 
     private final FileSystemManager fsManager;
+    // The handler for the file currently being streamed, so its checkpoint can be cleared
+    // after the file is moved. Null for the whole-file path.
+    private StreamInjectHandler activeStream;
 
     public FileInjectHandler(String injectingSeq, String onErrorSeq, boolean sequential,
                              SynapseEnvironment synapseEnvironment, VFSConfig vfsProperties,
@@ -84,13 +87,27 @@ public class FileInjectHandler extends AbstractInjectHandler {
         if (vfsProperties.isStreaming()) {
             String mode = vfsProperties.getStreamingMode();
             if (StreamingConstants.STREAMING_MODE_CHUNK.equalsIgnoreCase(mode)) {
-                return newStreamHandler().stream(file, name, true);
+                activeStream = newStreamHandler();
+                return activeStream.stream(file, name, true);
             } else if (StreamingConstants.STREAMING_MODE_RECORD.equalsIgnoreCase(mode)) {
-                return newStreamHandler().stream(file, name, false);
+                activeStream = newStreamHandler();
+                return activeStream.stream(file, name, false);
             }
             // ENTIRE_FILE (default) falls through to the whole-file behaviour below.
         }
+        activeStream = null;
         return invokeEntireFile(file, name);
+    }
+
+    /**
+     * Clear the checkpoint of the file just streamed. Call this only after that file has been
+     * moved out of the poll folder.
+     */
+    public void clearStreamingCheckpointAfterMove() {
+        if (activeStream != null) {
+            activeStream.clearCheckpointAfterMove();
+            activeStream = null;
+        }
     }
 
     /**

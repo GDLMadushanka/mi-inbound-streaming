@@ -445,6 +445,11 @@ public class VFSConsumer extends GenericPollingConsumer {
                         log.debug("File processed successfully: " + maskURLPassword(file.toString()));
                     }
                     postProcessingHandler.onSuccess(file);
+                    // The checkpoint stayed through the completion callback. Drop it only now,
+                    // after the file has left the poll folder.
+                    if (recordOrChunkStreaming) {
+                        fileInjectHandler.clearStreamingCheckpointAfterMove();
+                    }
                 } else {
                     // handle the failed records here too
                     if (log.isDebugEnabled()) {
